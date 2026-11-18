@@ -66,6 +66,17 @@ npx x-find run                                      # check every site now (for 
 
 `x-find serve` keeps a history of every check in `~/.x-find/x-find.db` (SQLite, built into Node; set `X_FIND_HOME` to move it), shows readiness over time, the to-do list with fixes, what changed since the previous check, and which search and AI crawlers can reach the site. Checks run daily while the server is on; a day missed because the computer was off runs at the next start. A check that fails (no network) is recorded and retried an hour later.
 
+**Keep it running without a terminal (macOS).** `x-find serve` stops when its terminal closes, and so do the daily checks. Install it as a background service instead: it starts when you log in and restarts if it stops.
+
+```bash
+# Run from a fixed install (a global install or a clone of this repo), not the npx cache.
+x-find service install     # stop any x-find serve running in a terminal first
+x-find service status
+x-find service uninstall
+```
+
+It is a launchd LaunchAgent (`~/Library/LaunchAgents/dev.xfind.serve.plist`) and logs to `~/.x-find/serve.log`. The dashboard's sidebar says whether it runs in the background or in a terminal. On Linux, `x-find service install` prints the matching systemd user unit instead.
+
 The dashboard listens on 127.0.0.1 only. It refuses requests addressed to other host names (DNS rebinding) and writes without its own request header (CSRF).
 
 **Remote access (Cloudflare Tunnel, ngrok, a proxy).** Requests that come through a tunnel or proxy are recognised by their forwarding headers, even when the tunnel rewrites the Host header to look local. They are refused unless you set a password; with one, they get a sign-in page (session cookie, 5 wrong tries lock an address out for 15 minutes):
@@ -79,6 +90,14 @@ npx x-find serve
 
 For a team, putting the tunnel's hostname behind Cloudflare Access (email login) is stronger still.
 
+### This week: what to do next
+
+Numbers don't bring visitors; doing the right few things does. The dashboard opens with **This week**: at most three actions, most important first, each with why (the evidence and the official document), numbered steps you can hand to a developer, who should do it, and how x-find will know it's done. `x-find week` prints the same in a terminal.
+
+- **Order:** problems that stop search engines first, then pages that can't be reached by links from the home page, then pages to ask Google to index (the ones with the most content; never privacy or terms pages), then Search Console opportunities, then smaller fixes.
+- **Stage:** where the site stands, from its own numbers: 0 getting into Google, 1 new in Google (people only find it by name), 2 showing up for other searches, 3 close to page one, 4 growing.
+- **Done:** actions x-find can verify close themselves after the next check or Search Console sync; if a problem comes back, so does the action, with the reason. Advice from search numbers closes when you mark it done. "Not relevant" hides an action for good.
+
 ### Google Search Console
 
 ```bash
@@ -90,8 +109,11 @@ With a service-account key (the dashboard's Connections page lists the six setup
 
 - clicks, impressions, average position and click rate per day (16 months the first time, then the last 10 days again, since Google revises recent days);
 - top searches with position change, countries, devices, for the last 28 days against the 28 before;
-- indexing from URL Inspection for the sitemap's pages (up to 100 a day; Google allows 2,000), with a link to each page in Search Console, where "Request indexing" is;
+- indexing from URL Inspection for the pages you want in search: sitemap pages and crawled pages that aren't noindex or canonicalised elsewhere (up to 100 a day; Google allows 2,000), with a link to each page in Search Console, where "Request indexing" is;
+- the submitted sitemaps and their status in Search Console;
 - opportunities from fixed rules over your own numbers: searches at positions 8–20, top-10 searches with a click rate under half the site's top-10 average, and pages that lost 30% or more of their clicks.
+
+The dashboard then opens with **how many of those pages are in Google**, above the readiness scores, because a high readiness score doesn't mean Google has indexed the pages. Missing pages are grouped by Google's own state ("Discovered – currently not indexed", "URL is unknown to Google", …) with what it means and what to do, each linking to Google's document. Next to each page, x-find shows only what it can measure: no internal links, not reachable from the home page, not in the sitemap, little text, Google chose another canonical, Google's fetch failed. It also shows site-wide facts: no sitemap submitted, sitemap errors, and how new the site is in Search Console. When nothing measurable explains a missing page, it says so instead of guessing.
 
 The key is copied to `~/.x-find/` and readable only by you. Access is read-only (`webmasters.readonly`). Google reports countries, not cities.
 
@@ -140,6 +162,33 @@ Three readiness scores (SEO, AEO, GEO), 0–100, computed only from the checks:
 - 100 means nothing failed (scores round down).
 
 They measure whether the site is ready to be found, **not** rankings or traffic. Checks that need a live server (status codes, redirects, crawler access) are listed as _not measured_ in folder mode, never as passed.
+
+### What the scores can and can't tell you
+
+Being readable by an AI crawler is not the same as being cited by an AI engine. AEO and GEO scores cover the first only.
+
+| Question                                                      | x-find                                         |
+| ------------------------------------------------------------- | ---------------------------------------------- |
+| Can search and AI crawlers reach your pages?                  | Checked (robots.txt, firewall responses)       |
+| Can they read the content without running scripts?            | Checked                                        |
+| Is it clear who you are: name, logo, official profiles?       | Partly checked                                 |
+| Are your pages in Google, and do people click them?           | Measured from Search Console, when connected   |
+| Do ChatGPT, Perplexity or Google's AI answers cite your site? | **Not measured**: x-find doesn't query engines |
+| Does your brand come up when people ask AI about your field?  | **Not measured**                               |
+
+### Required, recommended, or for your information
+
+Severity sets what a finding costs. Separately, every finding says what it means:
+
+- **Required**: the cited source says the thing is invalid, ignored, over a limit, broken, or makes the page ineligible.
+- **Recommended**: the source recommends it; nothing breaks if you don't.
+- **For your information**: a policy choice or plain information.
+- **Estimate**: the check infers rather than reads the answer (word counts, near-duplicate text, spelling variants,
+  crawler tests from your own machine), so it can be wrong.
+
+Each check has a version, and every report prints a **rules ID** built from them. Two reports with the same rules ID were
+scored by the same rules; when it changes, a score change may come from x-find rather than your site. See
+[docs/checks.md](https://github.com/Xbot-me/x-find/blob/main/docs/checks.md) for the label of every check.
 
 ## What it deliberately doesn't do
 
