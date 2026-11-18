@@ -1,0 +1,8 @@
+# Example Studio
+
+> Production-ready 3D characters for games.
+
+## Pages
+
+- [Services](https://example.com/services/): what we do
+- [About](https://example.com/about/)

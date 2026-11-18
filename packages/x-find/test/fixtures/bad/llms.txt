@@ -1,0 +1,5 @@
+Example
+
+## Links
+- Contact us at hello@example.com
+- [Gone](https://example.com/gone/)

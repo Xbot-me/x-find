@@ -1,0 +1,63 @@
+{
+  "name": "x-find",
+  "version": "0.1.0",
+  "description": "Checks whether search engines and AI answer engines can find, read and cite a website. Every rule cites its source.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "bin": {
+    "x-find": "./dist/node/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/core/index.d.ts",
+      "default": "./dist/core/index.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "default": "./dist/node/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "assets",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "seo",
+    "aeo",
+    "geo",
+    "audit",
+    "robots.txt",
+    "sitemap",
+    "structured-data",
+    "llms.txt",
+    "ci"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && chmod +x dist/node/cli.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --exclude test/live-site.test.ts",
+    "test:live": "X_FIND_LIVE=1 vitest run test/live-site.test.ts"
+  },
+  "dependencies": {
+    "parse5": "^8.1.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "vitest": "^5.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Xbot-me/x-find.git",
+    "directory": "packages/x-find"
+  },
+  "homepage": "https://github.com/Xbot-me/x-find#readme",
+  "bugs": {
+    "url": "https://github.com/Xbot-me/x-find/issues"
+  }
+}

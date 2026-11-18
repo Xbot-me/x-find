@@ -1,0 +1,170 @@
+/*
+ * Shared by the tasks screen and the details page: the soft colour light that moves slowly under the glass panels.
+ * Web approximation of frosted glass (backdrop-filter), not Apple's Liquid Glass.
+ *
+ * Motion rules: transform-only (cheap to animate), slow (40-70 s per drift), still when the computer asks for reduced
+ * motion, and still when the person turns motion off (html.still), since it runs longer than 5 seconds (WCAG 2.2.2).
+ */
+:root {
+  --blob-yellow: rgb(255 210 31 / 0.8);
+  --blob-cream: rgb(255 249 232 / 0.95);
+  --blob-sage: rgb(165 172 112 / 0.42);
+  --blob-amber: rgb(245 165 36 / 0.38);
+  --blob-lemon: rgb(255 226 102 / 0.6);
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme='light'])) {
+    --blob-yellow: rgb(255 210 31 / 0.2);
+    --blob-cream: rgb(120 128 80 / 0.32);
+    --blob-sage: rgb(150 160 96 / 0.22);
+    --blob-amber: rgb(245 165 36 / 0.14);
+    --blob-lemon: rgb(255 226 102 / 0.12);
+  }
+}
+:root[data-theme='dark'] {
+  --blob-yellow: rgb(255 210 31 / 0.2);
+  --blob-cream: rgb(120 128 80 / 0.32);
+  --blob-sage: rgb(150 160 96 / 0.22);
+  --blob-amber: rgb(245 165 36 / 0.14);
+  --blob-lemon: rgb(255 226 102 / 0.12);
+}
+
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ambient i {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  will-change: transform;
+  animation: var(--drift) var(--dur) ease-in-out infinite alternate;
+}
+/* Each blob: where it starts, how big, which colour, and its own path and pace. */
+.ambient .b1 {
+  width: 52vmax;
+  height: 52vmax;
+  left: 38%;
+  top: -14%;
+  background: radial-gradient(circle, var(--blob-yellow) 0%, transparent 66%);
+  --drift: drift-a;
+  --dur: 46s;
+}
+.ambient .b2 {
+  width: 46vmax;
+  height: 46vmax;
+  left: -12%;
+  top: 46%;
+  background: radial-gradient(circle, var(--blob-cream) 0%, transparent 66%);
+  --drift: drift-b;
+  --dur: 58s;
+}
+.ambient .b3 {
+  width: 38vmax;
+  height: 38vmax;
+  left: 62%;
+  top: 52%;
+  background: radial-gradient(circle, var(--blob-sage) 0%, transparent 66%);
+  --drift: drift-c;
+  --dur: 64s;
+}
+.ambient .b4 {
+  width: 30vmax;
+  height: 30vmax;
+  left: 14%;
+  top: 4%;
+  background: radial-gradient(circle, var(--blob-amber) 0%, transparent 66%);
+  --drift: drift-d;
+  --dur: 52s;
+}
+.ambient .b5 {
+  width: 24vmax;
+  height: 24vmax;
+  left: 74%;
+  top: 18%;
+  background: radial-gradient(circle, var(--blob-lemon) 0%, transparent 66%);
+  --drift: drift-b;
+  --dur: 40s;
+}
+@keyframes drift-a {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-16vw, 14vh) scale(1.12);
+  }
+  100% {
+    transform: translate(-30vw, 4vh) scale(0.94);
+  }
+}
+@keyframes drift-b {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(18vw, -16vh) scale(0.92);
+  }
+  100% {
+    transform: translate(34vw, -6vh) scale(1.1);
+  }
+}
+@keyframes drift-c {
+  0% {
+    transform: translate(0, 0) scale(1.05);
+  }
+  50% {
+    transform: translate(-22vw, -18vh) scale(0.9);
+  }
+  100% {
+    transform: translate(-8vw, -34vh) scale(1.12);
+  }
+}
+@keyframes drift-d {
+  0% {
+    transform: translate(0, 0) scale(0.95);
+  }
+  50% {
+    transform: translate(24vw, 22vh) scale(1.15);
+  }
+  100% {
+    transform: translate(46vw, 8vh) scale(1);
+  }
+}
+html.still .ambient i {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ambient i {
+    animation: none;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .ambient {
+    display: none;
+  }
+}
+
+/* The motion switch: a small glass pill. */
+.motion-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 13px;
+  border: 0;
+  border-radius: 999px;
+  padding: 5px 11px;
+  cursor: pointer;
+}
+.motion-btn svg {
+  width: 13px;
+  height: 13px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .motion-btn {
+    display: none;
+  }
+}

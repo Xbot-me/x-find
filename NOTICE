@@ -1,0 +1,11 @@
+x-find
+Copyright (c) 2026 x-find contributors. Licensed under the MIT License (see LICENSE).
+
+packages/x-find/test/robots-google.test.ts contains test cases ported from
+google/robotstxt (https://github.com/google/robotstxt), robots_test.cc,
+Copyright 2019 Google LLC, licensed under the Apache License, Version 2.0
+(http://www.apache.org/licenses/LICENSE-2.0).
+
+packages/x-find/src/connectors/countries.ts contains ISO 3166 code mappings generated
+from Unicode CLDR (https://cldr.unicode.org), cldr-core 49.0.0, Copyright © 1991-2026
+Unicode, Inc., licensed under the Unicode License v3 (https://www.unicode.org/license.txt).

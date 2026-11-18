@@ -1,0 +1,1699 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>x-find</title>
+    <script>
+      // The motion choice is shared with the details page; apply it before the first paint.
+      try {
+        if (localStorage.getItem('x-find-motion') === 'off') document.documentElement.classList.add('still');
+      } catch {}
+    </script>
+    <link rel="stylesheet" href="/assets/glass.css" />
+    <style>
+      :root {
+        --bg: #d8c5a5;
+        --panel: #e5d6ba;
+        --text: #2b2d1c;
+        --text-2: #3e402a;
+        --text-3: #47482f;
+        --line: #c4b08d;
+        --line-2: #b39f7c;
+        --pass: #335a1b;
+        --pass-bg: #d3d2a8;
+        --fail: #9b2318;
+        --fail-bg: #ebcdb2;
+        --wait: #6a4b00;
+        --wait-bg: #ecd58e;
+        --focus: #4c5232;
+        --ground: #c9b48e;
+        --ground-2: #d8c5a5;
+        --olive: #5a603c;
+        --olive-2: #4c5232;
+        --olive-ink: #f3ead3;
+        --signal: #ffd21f;
+        --signal-ink: #2b2d1c;
+        --hair: rgb(43 45 28 / 0.09);
+        --brand-x: #5a603c;
+        --hair-2: rgb(43 45 28 / 0.16);
+        --glass-hi: rgb(255 255 255 / 0.55);
+        --glass-drop: rgb(43 45 28 / 0.3);
+        /* Satin ink: lighter where light hits the top of the letters, deepest at the base (same as the details page). */
+        --shine: linear-gradient(180deg, #4a4f32 0%, #2b2d1c 52%, #1d1f10 100%);
+        /* Letterpress: a 1px light edge under dark letters (a dark edge under light ones in dark mode). */
+        --shine-edge: rgb(255 255 255 / 0.55);
+        --sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+        --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+        --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #1b1c12;
+          --panel: #25271a;
+          --text: #e8dcc0;
+          --text-2: #cdbf9f;
+          --text-3: #a69a7c;
+          --line: #383a28;
+          --line-2: #494b34;
+          --pass: #8dc05a;
+          --pass-bg: #1f2b12;
+          --fail: #ff8f68;
+          --fail-bg: #331a12;
+          --wait: #f0c14b;
+          --wait-bg: #2e2610;
+          --focus: #ffd21f;
+          --ground: #2f3122;
+          --ground-2: #1b1c12;
+          --olive: #3d4228;
+          --olive-2: #33381f;
+          --olive-ink: #ece0c4;
+          --signal: #ffd21f;
+          --signal-ink: #1b1c12;
+          --hair: rgb(255 255 255 / 0.07);
+          --brand-x: #ffd21f;
+          --hair-2: rgb(255 255 255 / 0.13);
+          --glass-hi: rgb(255 255 255 / 0.08);
+          --glass-drop: rgb(0 0 0 / 0.5);
+          --shine: linear-gradient(180deg, #fffaf0 0%, #efe3c4 48%, #c9ba93 100%);
+          --shine-edge: rgb(0 0 0 / 0.55);
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        background: var(--bg);
+        color: var(--text);
+        font: 400 16px/1.55 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+      body {
+        margin: 0;
+        min-height: 100svh;
+        display: flex;
+        flex-direction: column;
+      }
+      button,
+      input {
+        font: inherit;
+        color: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      :focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 3px;
+        border-radius: 8px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px 10px 18px;
+        font-size: 14px;
+        background: #3e451a;
+        color: var(--olive-ink);
+        --focus: var(--signal);
+        overflow: hidden;
+        /* A floating bar of soft olive glass: the moving light shows through it, blurred. */
+        position: sticky;
+        top: 10px;
+        z-index: 20;
+        margin: 10px 12px 0;
+        border-radius: 16px;
+        border-radius: 20px;
+        border: 1px solid rgb(255 255 255 / 0.12);
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.16),
+          0 22px 50px -28px rgb(27 28 18 / 0.5);
+      }
+      @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        header {
+          /* 74% deep olive: the most see-through it can be while its light text stays at 4.5:1 or better over the
+             brightest light that passes behind it. A faint glow at the top softens it. */
+          background:
+            radial-gradient(120% 90% at 20% 0%, rgb(255 255 255 / 0.05), transparent 70%),
+            color-mix(in srgb, #33381d 74%, transparent);
+          -webkit-backdrop-filter: blur(24px) saturate(170%);
+          backdrop-filter: blur(24px) saturate(170%);
+        }
+      }
+      @media (prefers-reduced-transparency: reduce) {
+        header {
+          background: #3e451a;
+          -webkit-backdrop-filter: none;
+          backdrop-filter: none;
+        }
+      }
+      /* The x-find mark: a magnifying glass on a signal-yellow tile, with an x where it found something. */
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--olive-ink);
+        text-decoration: none;
+      }
+      .brand-mark {
+        width: 28px;
+        height: 28px;
+        flex: none;
+        display: block;
+        filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.3));
+      }
+      .brand-word {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.035em;
+        line-height: 1;
+        white-space: nowrap;
+      }
+      /* "x" in signal yellow, "find" in champagne. */
+      .brand-word i {
+        font-style: normal;
+        color: var(--signal);
+      }
+      .brand-word span {
+        background: linear-gradient(180deg, #fffaf0 0%, #efe3c4 55%, #d9cba6 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        -webkit-text-fill-color: transparent;
+      }
+      @media (forced-colors: active) {
+        .brand-word span {
+          background: none;
+          -webkit-text-fill-color: CanvasText;
+        }
+      }
+      /* The site, set apart from the logo by a thin divider instead of a dot. */
+      /* A flowering olive branch drawn faintly across the bar, behind its contents. */
+      .bar-art {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: 476px;
+        height: 100%;
+        transform: translateX(-58%);
+        pointer-events: none;
+        z-index: 0;
+      }
+      header > :not(.bar-art) {
+        position: relative;
+        z-index: 1;
+      }
+      .bar-art .st {
+        fill: none;
+        stroke: rgb(255 255 255 / 0.2);
+        stroke-width: 1.4;
+        stroke-linecap: round;
+      }
+      .bar-art .lf {
+        fill: rgb(255 255 255 / 0.05);
+        stroke: rgb(255 255 255 / 0.18);
+        stroke-width: 1;
+      }
+      .bar-art .ol {
+        fill: rgb(255 210 31 / 0.3);
+        stroke: rgb(255 210 31 / 0.45);
+        stroke-width: 0.8;
+      }
+      .bar-art .pt {
+        fill: rgb(255 249 232 / 0.32);
+      }
+      .bar-art .fc {
+        fill: rgb(255 210 31 / 0.7);
+      }
+      header .site-name {
+        margin-left: 12px;
+        padding-left: 12px;
+        border-left: 1px solid rgb(255 255 255 / 0.22);
+        line-height: 18px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .site-pick {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        margin-left: 6px;
+      }
+      .site-pick select {
+        appearance: none;
+        font: inherit;
+        font-size: 14px;
+        color: var(--text);
+        background: color-mix(in srgb, var(--panel) 62%, transparent);
+        border: 1px solid var(--hair-2);
+        border-radius: 8px;
+        height: 32px;
+        padding: 0 30px 0 10px;
+        max-width: 260px;
+        text-overflow: ellipsis;
+        cursor: pointer;
+        transition: border-color 0.2s;
+      }
+      .site-pick select:hover {
+        border-color: var(--text-3);
+      }
+      .site-pick .chev {
+        position: absolute;
+        right: 8px;
+        width: 16px;
+        height: 16px;
+        color: var(--text-2);
+        pointer-events: none;
+      }
+      .tasks-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 36px;
+        padding: 0 8px 0 12px;
+        border: 1px solid rgb(255 255 255 / 0.14);
+        border-radius: 11px;
+        background: rgb(0 0 0 / 0.18);
+        box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+        color: var(--olive-ink);
+        font-size: 14px;
+        font-weight: 500;
+        transition: border-color 0.2s;
+        white-space: nowrap;
+      }
+      .head-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .motion-icon {
+        padding: 0 11px;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .motion-icon {
+          display: none;
+        }
+      }
+      .report-btn {
+        text-decoration: none;
+        padding: 0 12px;
+      }
+      .report-btn .short {
+        display: none;
+      }
+      .tasks-btn:hover {
+        border-color: rgb(255 255 255 / 0.32);
+      }
+      .tasks-btn svg {
+        width: 16px;
+        height: 16px;
+        color: #e3dbc1;
+      }
+      .tasks-btn .count {
+        min-width: 22px;
+        height: 22px;
+        padding: 0 6px;
+        border-radius: 6px;
+        background: var(--signal);
+        color: var(--signal-ink);
+        font-size: 12.5px;
+        font-weight: 600;
+        display: grid;
+        place-items: center;
+        font-variant-numeric: tabular-nums;
+      }
+      .tasks-btn .count.zero {
+        background: var(--pass);
+      }
+      main {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 20px 64px;
+      }
+      .stage {
+        width: 100%;
+        max-width: 680px;
+        margin-top: 28px;
+        padding: 30px 40px 32px;
+        border-radius: 28px;
+        border: 1px solid var(--hair);
+        background: color-mix(in srgb, var(--panel) 72%, transparent);
+        -webkit-backdrop-filter: blur(28px) saturate(160%);
+        backdrop-filter: blur(28px) saturate(160%);
+        box-shadow:
+          inset 0 1px 0 var(--glass-hi),
+          0 30px 70px -40px var(--glass-drop);
+      }
+      @media (prefers-reduced-transparency: reduce) {
+        .stage {
+          background: var(--panel);
+          -webkit-backdrop-filter: none;
+          backdrop-filter: none;
+        }
+      }
+      .scene {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 760 / 260;
+      }
+      .penguin .pg-flipper-r {
+        transform-box: fill-box;
+        transform-origin: 15% 8%;
+        transition: transform 0.6s var(--ease);
+      }
+      .penguin .pg-flipper-l {
+        transform-box: fill-box;
+        transform-origin: 85% 8%;
+        transition: transform 0.6s var(--ease);
+      }
+      .penguin .pg-body,
+      .penguin .pg-eyes {
+        transform-box: fill-box;
+      }
+      .penguin .pg-body {
+        transform-origin: 50% 100%;
+      }
+      .penguin .pg-eyes {
+        transform-origin: center;
+      }
+      .pose-push .pg-body {
+        transform: rotate(8deg);
+      }
+      .pose-push .pg-flipper-r {
+        transform: rotate(-58deg);
+      }
+      .pose-point .pg-flipper-r {
+        transform: rotate(-112deg);
+      }
+      .pose-carry .pg-flipper-r {
+        transform: rotate(-38deg);
+      }
+      .pose-carry .pg-flipper-l {
+        transform: rotate(38deg);
+      }
+      .pose-cheer .pg-flipper-r {
+        transform: rotate(-118deg);
+      }
+      .pose-cheer .pg-flipper-l {
+        transform: rotate(118deg);
+      }
+
+      .trail {
+        margin: 6px 0 30px;
+      }
+      .trail ol {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(0, 1fr);
+      }
+      .trail li {
+        position: relative;
+        display: flex;
+        justify-content: center;
+      }
+      .trail li:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        top: 22px;
+        left: calc(50% + 28px);
+        right: calc(-50% + 28px);
+        border-top: 2px dotted var(--line-2);
+      }
+      .trail li.done:not(:last-child)::after {
+        border-top-color: var(--pass);
+      }
+      .trail button {
+        background: none;
+        border: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        border-radius: 12px;
+        min-width: 0;
+      }
+      .stone {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: color-mix(in srgb, var(--panel) 60%, transparent);
+        border: 1.5px solid var(--hair-2);
+        box-shadow: inset 0 1px 0 var(--glass-hi);
+        color: var(--text-3);
+        transition:
+          transform 0.4s var(--ease),
+          background 0.4s,
+          border-color 0.4s,
+          color 0.4s;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .stone svg {
+        width: 20px;
+        height: 20px;
+      }
+      .trail button:hover .stone {
+        border-color: var(--text-3);
+        color: var(--text);
+      }
+      .trail .now .stone {
+        border: 2px solid var(--olive);
+        background: var(--signal);
+        color: var(--signal-ink);
+        transform: scale(1.12);
+        box-shadow: 0 0 0 5px color-mix(in srgb, var(--signal) 22%, transparent);
+      }
+      .trail .done .stone {
+        background: var(--pass-bg);
+        border-color: var(--pass);
+        color: var(--pass);
+      }
+      .trail .wait .stone {
+        border-color: var(--wait);
+        color: var(--wait);
+      }
+      .trail .done .stone::after {
+        content: '';
+        position: absolute;
+        right: -3px;
+        bottom: -3px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--pass)
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 12.5 4 4 8-9'/%3E%3C/svg%3E")
+          center / 10px no-repeat;
+        border: 2px solid var(--bg);
+      }
+      .trail .lbl {
+        font-size: 12.5px;
+        color: var(--text-3);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
+      .trail .now .lbl {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .trail .done .lbl {
+        color: var(--pass);
+      }
+      .enter {
+        animation: enter 0.5s var(--ease) both;
+      }
+      @keyframes enter {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+      }
+      h1 {
+        font-size: clamp(26px, 4.2vw, 34px);
+        line-height: 1.18;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin: 0;
+        text-wrap: balance;
+        /* Satin ink with a letterpress edge. */
+        background: var(--shine);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 1px 0 var(--shine-edge));
+      }
+      @media (forced-colors: active) {
+        h1 {
+          background: none;
+          color: CanvasText;
+          -webkit-text-fill-color: CanvasText;
+          filter: none;
+        }
+      }
+      .sub {
+        color: var(--text-2);
+        margin: 12px 0 0;
+        font-size: 17px;
+        text-wrap: pretty;
+        max-width: 52ch;
+      }
+      .note {
+        margin: 10px 0 0;
+        font-size: 14px;
+        color: var(--wait);
+      }
+      .choices {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 28px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        height: 46px;
+        padding: 0 18px;
+        border-radius: 12px;
+        border: 1px solid var(--hair-2);
+        background: color-mix(in srgb, var(--panel) 62%, transparent);
+        box-shadow: inset 0 1px 0 var(--glass-hi);
+        font-weight: 500;
+        transition:
+          border-color 0.2s,
+          transform 0.15s var(--ease);
+      }
+      .btn:hover {
+        border-color: var(--text-3);
+      }
+      .btn:active {
+        transform: translateY(1px);
+      }
+      .btn.main {
+        background: var(--olive);
+        border-color: var(--olive);
+        color: var(--olive-ink);
+      }
+      .btn.main:hover {
+        opacity: 0.9;
+      }
+      .btn[disabled] {
+        opacity: 0.7;
+        cursor: progress;
+      }
+      .btn svg {
+        width: 16px;
+        height: 16px;
+        flex: none;
+      }
+      .hint {
+        margin: 10px 0 0;
+        font-size: 13.5px;
+        color: var(--text-3);
+      }
+      .result {
+        display: none;
+        align-items: flex-start;
+        gap: 10px;
+        margin-top: 18px;
+        padding: 12px 14px;
+        border-radius: 10px;
+        font-size: 15px;
+        line-height: 1.45;
+      }
+      .result.on {
+        display: flex;
+        animation: enter 0.35s var(--ease) both;
+      }
+      .result svg {
+        width: 18px;
+        height: 18px;
+        flex: none;
+        margin-top: 1px;
+      }
+      .result small {
+        display: block;
+        font-size: 12.5px;
+        opacity: 0.85;
+        margin-top: 2px;
+      }
+      .result.fail {
+        background: var(--fail-bg);
+        color: var(--fail);
+      }
+      .result.wait {
+        background: var(--wait-bg);
+        color: var(--wait);
+      }
+      .result.busy {
+        background: transparent;
+        color: var(--text-2);
+        padding-left: 0;
+      }
+      .more {
+        margin-top: 32px;
+        border-top: 1px solid var(--hair);
+      }
+      details {
+        border-bottom: 1px solid var(--hair);
+      }
+      summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 14px 2px;
+        color: var(--text-2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-radius: 6px;
+      }
+      summary:hover {
+        color: var(--text);
+      }
+      summary::-webkit-details-marker {
+        display: none;
+      }
+      summary svg {
+        width: 16px;
+        height: 16px;
+        color: var(--text-3);
+        transition: transform 0.3s var(--ease);
+      }
+      details[open] summary svg {
+        transform: rotate(180deg);
+      }
+      details[open] .inside {
+        animation: enter 0.35s var(--ease) both;
+      }
+      .inside {
+        padding: 0 2px 18px;
+        color: var(--text-2);
+        font-size: 15px;
+      }
+      .inside ol {
+        margin: 0 0 14px;
+        padding-left: 20px;
+      }
+      .inside li {
+        margin: 6px 0;
+        padding-left: 4px;
+      }
+      .inside a {
+        color: var(--text-2);
+        text-underline-offset: 3px;
+      }
+      .code {
+        position: relative;
+      }
+      pre {
+        margin: 0;
+        padding: 14px 16px;
+        padding-right: 72px;
+        background: color-mix(in srgb, var(--panel) 55%, transparent);
+        border: 1px solid var(--hair);
+        border-radius: 12px;
+        overflow-x: auto;
+        font: 13px/1.7 var(--mono);
+        color: var(--text);
+      }
+      .copy {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        height: 28px;
+        padding: 0 10px;
+        font-size: 12.5px;
+        border-radius: 8px;
+        border: 1px solid var(--hair-2);
+        background: color-mix(in srgb, var(--panel) 80%, transparent);
+        color: var(--text-2);
+      }
+      .pages {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font: 13.5px/2 var(--mono);
+        color: var(--text);
+        overflow-wrap: anywhere;
+      }
+      .done-mark {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: var(--pass-bg);
+        color: var(--pass);
+        display: grid;
+        place-items: center;
+        margin-bottom: 18px;
+      }
+      .done-mark svg {
+        width: 22px;
+        height: 22px;
+      }
+      .done-mark path {
+        stroke-dasharray: 30;
+        stroke-dashoffset: 30;
+        animation: draw 0.5s 0.15s var(--ease) forwards;
+      }
+      @keyframes draw {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      .list {
+        list-style: none;
+        padding: 0;
+        margin: 22px 0 0;
+        border-top: 1px solid var(--hair);
+      }
+      .list button {
+        width: 100%;
+        text-align: left;
+        background: none;
+        border: 0;
+        border-bottom: 1px solid var(--hair);
+        padding: 15px 2px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+      }
+      .list button:hover .q {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+      .list .st {
+        font-size: 13px;
+        color: var(--text-3);
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .list .st::before {
+        content: '';
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--line-2);
+      }
+      .list .st.done {
+        color: var(--pass);
+      }
+      .list .st.done::before {
+        background: var(--pass);
+      }
+      .list .st.waiting {
+        color: var(--wait);
+      }
+      .list .st.waiting::before {
+        background: var(--wait);
+      }
+      .foot {
+        margin-top: 22px;
+        font-size: 14px;
+        color: var(--text-3);
+      }
+      .foot a {
+        color: var(--text-2);
+        text-underline-offset: 3px;
+      }
+      .add {
+        display: flex;
+        gap: 10px;
+        margin-top: 24px;
+        flex-wrap: wrap;
+      }
+      .add input {
+        flex: 1 1 260px;
+        height: 46px;
+        padding: 0 14px;
+        border-radius: 12px;
+        border: 1px solid var(--hair-2);
+        background: color-mix(in srgb, var(--panel) 62%, transparent);
+      }
+      .error {
+        margin-top: 12px;
+        color: var(--fail);
+        font-size: 14px;
+      }
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 24px;
+        transform: translate(-50%, 8px);
+        background: var(--text);
+        color: var(--bg);
+        padding: 10px 16px;
+        border-radius: 10px;
+        font-size: 14px;
+        opacity: 0;
+        transition:
+          opacity 0.2s,
+          transform 0.3s var(--ease);
+        pointer-events: none;
+        max-width: calc(100vw - 32px);
+      }
+      .toast.on {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+      .spin {
+        width: 16px;
+        height: 16px;
+        border: 2px solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: s 0.8s linear infinite;
+        flex: none;
+        margin-top: 2px;
+      }
+      @keyframes s {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (max-width: 640px) {
+        header {
+          padding: 8px 8px 8px 14px;
+          margin: 8px 8px 0;
+          top: 8px;
+        }
+        /* Keep the picker on a phone when there's a choice to make. */
+        header .site-name:not(:has(select)) {
+          display: none;
+        }
+        .site-pick select {
+          max-width: 180px;
+        }
+        /* On a phone the branch sits in the empty space on the top row, beside the logo, clear of the buttons. */
+        .bar-art {
+          left: auto;
+          right: 4px;
+          top: 2px;
+          width: 230px;
+          height: 30px;
+          transform: none;
+        }
+        /* Two rows when the picker and buttons don't fit on one. */
+        header {
+          flex-wrap: wrap;
+          row-gap: 10px;
+        }
+        .head-actions {
+          margin-left: auto;
+        }
+        .report-btn .long {
+          display: none;
+        }
+        .report-btn .short {
+          display: inline;
+        }
+        main {
+          align-items: flex-start;
+          padding: 4px 10px 40px;
+        }
+        .stage {
+          margin-top: 14px;
+          padding: 20px 18px 24px;
+          border-radius: 22px;
+        }
+        .btn {
+          flex: 1 1 100%;
+          justify-content: center;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+        .done-mark path {
+          stroke-dashoffset: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ambient" aria-hidden="true">
+      <i class="b1"></i><i class="b2"></i><i class="b3"></i><i class="b4"></i><i class="b5"></i>
+    </div>
+    <header>
+      <svg class="bar-art" viewBox="0 0 476 56" aria-hidden="true" focusable="false">
+        <path class="st" d="M6 36 C 150 10, 300 48, 470 22" />
+        <path
+          class="lf"
+          d="M0 0 C 6 -4.6, 22 -4.6, 30 0 C 22 4.6, 6 4.6, 0 0 Z"
+          transform="translate(35 32) rotate(-43) scale(0.81)"
+        />
+        <path
+          class="lf"
+          d="M0 0 C 6 -4.6, 22 -4.6, 30 0 C 22 4.6, 6 4.6, 0 0 Z"
+          transform="translate(64 29) rotate(32) scale(0.87)"
+        />
+        <path
+          class="lf"
+          d="M0 0 C 6 -4.6, 22 -4.6, 30 0 C 22 4.6, 6 4.6, 0 0 Z"
+          transform="translate(93 27) rotate(-38) scale(0.93)"
+        />
+        <path
+          class="lf"
+          d="M0 0 C 6 -4.6, 22 -4.6, 30 0 C 22 4.6, 6 4.6, 0 0 Z"
+          transform="translate(123 26) rotate(36) scale(0.97)"
+        />
+        <path
+          class="lf"
+          d="M0 0 C 6 -4.6, 22 -4.6, 30 0 C 22 4.6, 6 4.6, 0 0 Z"
+          transform="translate(153 27) rotate(-35) scale(1.01)"
+        />
+        <path
+          class="lf"
+          d="M0 0 C 6 -4.6, 22 -4.6, 30 0 C 22 4.6, 6 4.6, 0 0 Z"
+          transform="translate(183 27) rotate(38) scale(1.04)"
+        />
+        <path
+          class="lf"
+          d="M0 0 C 6 -4.6, 22 -4.6, 30 0 C 22 4.6, 6 4.6, 0 0 Z"
+          transform="translate(213 28) rotate(-34) scale(1.05)"
+        />
+        <path
+          class="lf"
+          d="M0 0 C 6 -4.6, 22 -4.6, 30 0 C 22 4.6, 6 4.6, 0 0 Z"
+          transform="translate(244 30) rotate(38) scale(1.05)"
+        />
+        <path
+          class="lf"
+          d="M0 0 C 6 -4.6, 22 -4.6, 30 0 C 22 4.6, 6 4.6, 0 0 Z"
+          transform="translate(275 31) rotate(-34) scale(1.04)"
+        />
+        <path
+          class="lf"
+          d="M0 0 C 6 -4.6, 22 -4.6, 30 0 C 22 4.6, 6 4.6, 0 0 Z"
+          transform="translate(306 31) rotate(37) scale(1.01)"
+        />
+        <path
+          class="lf"
+          d="M0 0 C 6 -4.6, 22 -4.6, 30 0 C 22 4.6, 6 4.6, 0 0 Z"
+          transform="translate(338 32) rotate(-36) scale(0.97)"
+        />
+        <path
+          class="lf"
+          d="M0 0 C 6 -4.6, 22 -4.6, 30 0 C 22 4.6, 6 4.6, 0 0 Z"
+          transform="translate(370 31) rotate(34) scale(0.93)"
+        />
+        <path
+          class="lf"
+          d="M0 0 C 6 -4.6, 22 -4.6, 30 0 C 22 4.6, 6 4.6, 0 0 Z"
+          transform="translate(403 29) rotate(-40) scale(0.87)"
+        />
+        <path
+          class="lf"
+          d="M0 0 C 6 -4.6, 22 -4.6, 30 0 C 22 4.6, 6 4.6, 0 0 Z"
+          transform="translate(436 26) rotate(30) scale(0.81)"
+        />
+        <path
+          class="lf"
+          d="M0 0 C 6 -4.6, 22 -4.6, 30 0 C 22 4.6, 6 4.6, 0 0 Z"
+          transform="translate(470 22) rotate(-8) scale(0.8)"
+        />
+        <ellipse class="ol" cx="124" cy="33" rx="3.6" ry="4.6" transform="rotate(-20 124 33)" />
+        <ellipse class="ol" cx="265" cy="37" rx="3.6" ry="4.6" transform="rotate(25 265 37)" />
+        <ellipse class="ol" cx="400" cy="37" rx="3.6" ry="4.6" transform="rotate(-15 400 37)" />
+        <circle class="pt" cx="62.0" cy="18.4" r="2" />
+        <circle class="pt" cx="64.5" cy="20.2" r="2" />
+        <circle class="pt" cx="63.5" cy="23.1" r="2" />
+        <circle class="pt" cx="60.5" cy="23.1" r="2" />
+        <circle class="pt" cx="59.5" cy="20.2" r="2" />
+        <circle class="fc" cx="62" cy="21" r="1.3" />
+        <circle class="pt" cx="196.0" cy="16.4" r="2" />
+        <circle class="pt" cx="198.5" cy="18.2" r="2" />
+        <circle class="pt" cx="197.5" cy="21.1" r="2" />
+        <circle class="pt" cx="194.5" cy="21.1" r="2" />
+        <circle class="pt" cx="193.5" cy="18.2" r="2" />
+        <circle class="fc" cx="196" cy="19" r="1.3" />
+        <circle class="pt" cx="332.0" cy="37.4" r="2" />
+        <circle class="pt" cx="334.5" cy="39.2" r="2" />
+        <circle class="pt" cx="333.5" cy="42.1" r="2" />
+        <circle class="pt" cx="330.5" cy="42.1" r="2" />
+        <circle class="pt" cx="329.5" cy="39.2" r="2" />
+        <circle class="fc" cx="332" cy="40" r="1.3" />
+        <circle class="pt" cx="445.0" cy="15.4" r="2" />
+        <circle class="pt" cx="447.5" cy="17.2" r="2" />
+        <circle class="pt" cx="446.5" cy="20.1" r="2" />
+        <circle class="pt" cx="443.5" cy="20.1" r="2" />
+        <circle class="pt" cx="442.5" cy="17.2" r="2" />
+        <circle class="fc" cx="445" cy="18" r="1.3" />
+      </svg>
+      <span class="brand-row" style="display: inline-flex; align-items: center; min-width: 0">
+        <a class="brand" href="/" aria-label="x-find, your tasks">
+          <svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true">
+            <rect width="28" height="28" rx="8" fill="#ffd21f" />
+            <rect x="0.5" y="0.5" width="27" height="27" rx="7.5" fill="none" stroke="rgb(255 255 255 / 0.55)" />
+            <circle cx="12" cy="12" r="6.6" fill="rgb(255 255 255 / 0.35)" stroke="#33381f" stroke-width="2.2" />
+            <path d="M16.9 16.9 21.6 21.6" stroke="#33381f" stroke-width="2.8" stroke-linecap="round" />
+            <path d="M9.9 9.9 14.1 14.1M14.1 9.9 9.9 14.1" stroke="#33381f" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+          <span class="brand-word"><i>x</i><span>-find</span></span>
+        </a>
+        <span class="site-name" id="site-name"></span>
+      </span>
+      <span class="head-actions">
+        <button class="tasks-btn motion-icon" type="button" id="motion-btn" aria-pressed="false"></button>
+        <a class="tasks-btn report-btn" href="/details" id="report-btn"
+          ><svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg
+          ><span class="long">Full report &amp; analysis</span><span class="short">Report</span></a
+        >
+        <button class="tasks-btn" type="button" id="toggle-list" hidden></button>
+      </span>
+    </header>
+    <main><div class="stage" id="main"></div></main>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="/assets/art.js"></script>
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const esc = (s) =>
+        String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+      const svg = (d, w = 2) =>
+        `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+      const I = {
+        copy: svg('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>'),
+        check: svg('<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/>'),
+        open: svg(
+          '<path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>',
+        ),
+        x: svg('<circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/>', 2.2),
+        ok: svg('<path d="m5 12.5 4.5 4.5L19 7.5"/>', 2.2),
+        clock: svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+        chev: svg('<path d="m6 9 6 6 6-6"/>'),
+        list: svg(
+          '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>',
+        ),
+        back: svg('<path d="M15 18l-6-6 6-6"/>'),
+      };
+      const ICON = {
+        reach: '<path d="M3 15 Q12 5 21 15"/><path d="M3 15v4M21 15v4M7.5 11.5V19M12 10v9M16.5 11.5V19"/>',
+        index: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="m3.5 7 8.5 6.5L20.5 7"/>',
+        linktext: '<path d="M12 3v18"/><path d="M6 6h11l3 3-3 3H6z"/>',
+        logo: '<path d="M5 21V4"/><path d="M5 4h13l-2.5 4L18 12H5"/>',
+        redirect: '<path d="M3 6h6l5 6M3 18h6l5-6M14 12h7"/><path d="m18 9 3 3-3 3"/>',
+        generic: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17v3h3l5.3-5.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>',
+      };
+      const MAX_STONES = 6;
+
+      const st = { sites: [], site: null, view: null, i: 0, list: false, just: null, busy: false };
+      /** The moving background on or off, shared with the details page and remembered. */
+      function setMotion(off) {
+        document.documentElement.classList.toggle('still', off);
+        try {
+          if (off) localStorage.setItem('x-find-motion', 'off');
+          else localStorage.removeItem('x-find-motion');
+        } catch {}
+        const b = $('motion-btn');
+        b.setAttribute('aria-pressed', String(off));
+        b.setAttribute('aria-label', off ? 'Play motion' : 'Pause motion');
+        b.title = off ? 'Play motion' : 'Pause motion';
+        b.innerHTML = off
+          ? '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5 3.2v9.6a.6.6 0 0 0 .9.5l7.6-4.8a.6.6 0 0 0 0-1L5.9 2.7a.6.6 0 0 0-.9.5z"/></svg>'
+          : '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="3.5" y="3" width="3" height="10" rx="1"/><rect x="9.5" y="3" width="3" height="10" rx="1"/></svg>';
+      }
+      $('motion-btn').addEventListener('click', () => setMotion(!document.documentElement.classList.contains('still')));
+      setMotion(document.documentElement.classList.contains('still'));
+      // The site you picked, shared with the details page.
+      function rememberedSite() {
+        try {
+          return localStorage.getItem('x-find-site');
+        } catch {
+          return null;
+        }
+      }
+      function rememberSite(id) {
+        try {
+          localStorage.setItem('x-find-site', String(id));
+        } catch {}
+        document.querySelectorAll('a[href^="/details"]').forEach((a) => (a.href = `/details?site=${id}`));
+      }
+      const tasks = () => st.view?.focus?.tasks ?? [];
+      const left = () => st.view?.focus?.left ?? 0;
+      const ix = () => (st.view?.search?.hasData ? st.view.search.indexing : null);
+
+      async function api(path, opts = {}) {
+        const res = await fetch(path, {
+          ...opts,
+          headers: { 'content-type': 'application/json', 'x-find-request': '1', ...(opts.headers || {}) },
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+        return body;
+      }
+
+      // ---------- Scene ----------
+      function ground() {
+        return `<defs><radialGradient id="gnd" cx="0.5" cy="0.15" r="0.6"><stop offset="0" stop-color="var(--ground)"/><stop offset="1" stop-color="var(--ground-2)" stop-opacity="0"/></radialGradient></defs>
+          <ellipse cx="1020" cy="392" rx="420" ry="46" fill="url(#gnd)"/>`;
+      }
+      function igloo(extraIndexed = 0) {
+        const x = ix();
+        // Without Search Console data the igloo is decoration: every brick in place, no claim made.
+        const total = x?.inspected || 24;
+        const placed = x ? Math.min(total, x.indexed + extraIndexed) : total;
+        const waiting = x ? (x.states.find((s) => /discovered/i.test(s.state))?.count ?? 0) : 0;
+        return `<g transform="translate(1170 382) scale(0.92)">${ART.igloo(total, placed)}</g>
+          <g transform="translate(1300 386) scale(0.7)">${ART.sled(Math.max(0, waiting - extraIndexed))}</g>`;
+      }
+      function scene(t, fixed, anim) {
+        let prop = '';
+        let pose = fixed ? 'cheer' : 'point';
+        let carry = '';
+        let flag = '';
+        const waiting = t.status === 'waiting';
+        if (t.scene === 'reach') {
+          prop = `<g transform="translate(948 380)">${ART.stream(110)}</g>`;
+          if (fixed)
+            prop += `<g transform="translate(948 384) scale(1.15)" id="t-bridge">${ART.bridge(150)}</g><g transform="translate(1018 386) scale(1.5)" id="t-pile">${ART.pile(Math.min(4, t.pages.length))}</g>`;
+          else {
+            prop += `<g transform="translate(822 388) scale(1.5)">${ART.pile(Math.min(4, t.pages.length))}</g>`;
+            pose = 'push';
+          }
+        } else if (t.scene === 'index') {
+          prop = `<g transform="translate(925 384)">${ART.mailbox(waiting || fixed)}</g>`;
+          if (!waiting && !fixed) {
+            pose = 'carry';
+            carry = `<g transform="translate(0 -84)">${ART.envelope()}</g>`;
+          }
+        } else if (t.scene === 'linktext') {
+          const word = (t.code?.text.match(/>([^<]+)<\/a>/)?.[1] ?? 'Work').replace(/&amp;/g, '&');
+          prop = `<g transform="translate(925 384)">${ART.signpost([{ text: fixed ? esc(word.length > 11 ? word.slice(0, 10) + '…' : word) : '', dir: 1 }])}</g>`;
+        } else if (t.scene === 'logo') {
+          flag = `<g transform="translate(1168 250)">${ART.flag(fixed)}</g>`;
+        } else if (t.scene === 'redirect') {
+          const [from, to] = (t.code?.text ?? '/a  /a/').split(/\s+/);
+          prop = `<g transform="translate(925 384)">${ART.signpost(
+            fixed && !anim
+              ? [{ text: esc(to), dir: 1 }]
+              : [
+                  { text: esc(from), dir: 1 },
+                  { text: esc(to), dir: 1 },
+                ],
+          )}</g>`;
+        } else if (!fixed) {
+          pose = 'point';
+        }
+        return `<svg class="scene" viewBox="640 140 760 260" aria-hidden="true">${ART.defs()}${ground()}
+          ${igloo(t.scene === 'index' && fixed ? t.pages.length : 0)}${flag}${prop}
+          <g transform="translate(760 388) scale(0.85)" id="pg">${ART.penguin({ pose })}${carry}</g><g id="fx"></g></svg>`;
+      }
+      function finale() {
+        return `<svg class="scene" viewBox="640 140 760 260" aria-hidden="true">${ART.defs()}${ground()}${igloo()}
+          <g transform="translate(760 388) scale(0.85)" id="pg">${ART.penguin({ pose: 'cheer' })}</g><g id="fx"></g></svg>`;
+      }
+
+      // ---------- Trail ----------
+      function trail() {
+        const all = tasks();
+        const shown = all.slice(0, MAX_STONES);
+        const more = all.length - shown.length;
+        const stone = (t, j) => {
+          const cls = t.status === 'done' ? 'done' : j === st.i ? 'now' : t.status === 'waiting' ? 'wait' : '';
+          const state =
+            t.status === 'done'
+              ? 'done'
+              : t.status === 'waiting'
+                ? 'waiting for Google'
+                : j === st.i
+                  ? 'current task'
+                  : 'to do';
+          return `<li class="${cls}"><button type="button" data-go="${j}" aria-label="Task ${j + 1}: ${esc(t.headline)} (${state})"${j === st.i ? ' aria-current="step"' : ''}>
+            <span class="stone">${svg(ICON[t.scene] || ICON.generic, 1.8)}</span><span class="lbl">${esc(t.short)}</span></button></li>`;
+        };
+        return `<nav class="trail" aria-label="Your tasks"><ol>${shown.map(stone).join('')}${
+          more > 0
+            ? `<li><button type="button" data-list="1" aria-label="${more} more tasks"><span class="stone">+${more}</span><span class="lbl">More</span></button></li>`
+            : ''
+        }</ol></nav>`;
+      }
+      function wireTrail() {
+        document
+          .querySelectorAll('[data-go]')
+          .forEach((b) => b.addEventListener('click', () => go(Number(b.dataset.go))));
+        document.querySelectorAll('[data-list]').forEach((b) => b.addEventListener('click', () => showList(true)));
+      }
+
+      // ---------- Screens ----------
+      function header() {
+        const b = $('toggle-list');
+        b.hidden = !st.view?.focus;
+        b.innerHTML = st.list
+          ? `${I.back}Back to your task`
+          : `${I.list}All tasks <span class="count ${left() ? '' : 'zero'}" aria-label="${left()} left">${left() || '✓'}</span>`;
+        b.style.paddingRight = st.list ? '12px' : '';
+      }
+
+      function addSiteScreen(error = '') {
+        $('main').innerHTML =
+          `<div class="enter"><svg class="scene" viewBox="640 140 760 260" aria-hidden="true">${ART.defs()}${ground()}${igloo()}
+          <g transform="translate(760 388) scale(0.85)">${ART.penguin({ pose: 'point' })}</g></svg>
+          <h1>Which site should x-find look after?</h1><p class="sub">It checks the site every day and tells you what to do next, one thing at a time.</p>
+          <form class="add" id="add"><input id="origin" type="url" required placeholder="https://example.com" aria-label="Your site's address"/><button class="btn main" type="submit">Add site</button></form>
+          ${error ? `<p class="error">${esc(error)}</p>` : ''}</div>`;
+        $('add').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          try {
+            const r = await api('/api/sites', {
+              method: 'POST',
+              body: JSON.stringify({ origin: $('origin').value.trim() }),
+            });
+            st.site = r.id;
+            await load();
+          } catch (err) {
+            addSiteScreen(err.message);
+          }
+        });
+      }
+
+      function checkingScreen() {
+        $('main').innerHTML =
+          `<div class="enter"><svg class="scene" viewBox="640 140 760 260" aria-hidden="true">${ART.defs()}${ground()}${igloo()}
+          <g transform="translate(760 388) scale(0.85)" id="pg">${ART.penguin({ pose: 'carry' })}</g></svg>
+          <h1>Checking your site…</h1><p class="sub">The first check takes a minute for a small site. This page updates by itself.</p></div>`;
+      }
+
+      function task() {
+        header();
+        const all = tasks();
+        if (!all.length) {
+          $('main').innerHTML =
+            `${finale()}<div class="enter"><div class="done-mark">${I.ok}</div><h1>Nothing to fix right now.</h1>
+            <p class="sub">x-find checks your site every day and adds a task here when something needs doing.</p>
+            <p class="foot"><a href="/details?site=${st.site}">See the full report</a></p></div>`;
+          return;
+        }
+        st.i = Math.min(st.i, all.length - 1);
+        const t = all[st.i];
+        if (t.status === 'done') return doneScreen(t);
+        const google = t.check === 'search';
+        const waiting = t.status === 'waiting';
+        const buttons = google
+          ? `<button class="btn main" type="button" id="open-sc">${I.open}Open Search Console</button>
+             <button class="btn" type="button" id="check">${waiting ? `${I.check}Check with Google` : `${I.ok}I’ve asked Google`}</button>`
+          : `<button class="btn main" type="button" id="brief">${I.copy}Copy the fix for your developer</button>
+             <button class="btn" type="button" id="check">${I.check}Check if it’s fixed</button>`;
+        const hint = google
+          ? waiting
+            ? 'Google decides when to visit. x-find checks every morning and moves this to done when it’s in.'
+            : 'Takes about 2 minutes. Google decides when to visit; x-find checks every morning.'
+          : 'Paste it to whoever edits your site, or to an AI assistant like ChatGPT or Claude.';
+        const pages = t.pages.length
+          ? `<details><summary>Which pages${I.chev}</summary><div class="inside"><ul class="pages">${t.pages
+              .map(
+                (p) =>
+                  `<li>${p.inspectUrl ? `<a href="${esc(p.inspectUrl)}" target="_blank" rel="noopener">${esc(p.url)}</a>` : esc(p.url)}</li>`,
+              )
+              .join('')}</ul></div></details>`
+          : '';
+        $('main').innerHTML = `${scene(t, false, false)}${trail()}<div class="enter">
+          <h1>${esc(t.headline)}</h1>
+          <p class="sub">${esc(t.reason)}</p>
+          ${t.note ? `<p class="note">${esc(t.note)}</p>` : ''}
+          <div class="choices">${buttons}</div>
+          <p class="hint">${hint}</p>
+          <div class="result" id="result" role="status" aria-live="polite"></div>
+          <div class="more">
+            <details><summary>${google ? 'How to ask Google' : 'Fix it yourself'}${I.chev}</summary><div class="inside"><ol>${t.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>${
+              t.code
+                ? `<div class="code"><pre>${esc(t.code.text)}</pre><button class="copy" type="button" id="copy-code">Copy</button></div>`
+                : ''
+            }</div></details>
+            ${pages}
+            <details><summary>Why it matters${I.chev}</summary><div class="inside">${esc(t.why)} ${t.sources
+              .slice(0, 1)
+              .map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">Google’s guide</a>`)
+              .join('')}</div></details>
+          </div></div>`;
+        wireTrail();
+        blinkTwice();
+        $('brief')?.addEventListener('click', () =>
+          copy(t.brief, 'Copied. Paste it to your developer or an AI assistant.'),
+        );
+        $('copy-code')?.addEventListener('click', () => copy(t.code.text, 'Code copied'));
+        $('open-sc')?.addEventListener('click', () => {
+          const first = t.pages.find((p) => p.inspectUrl);
+          window.open(first ? first.inspectUrl : 'https://search.google.com/search-console', '_blank', 'noopener');
+        });
+        $('check').addEventListener('click', () => (google && !waiting ? markAsked(t) : check(t)));
+      }
+
+      function doneScreen(t) {
+        const all = left() === 0;
+        const anim = st.just === t.key && !reduced;
+        st.just = null;
+        const next = tasks().findIndex((x) => x.status !== 'done');
+        $('main').innerHTML = `${all ? finale() : scene(t, true, anim)}${trail()}<div class="enter">
+          <div class="done-mark">${I.ok}</div>
+          <h1>${all ? 'All fixed. Nice work.' : 'Fixed.'}</h1>
+          <p class="sub">${
+            all
+              ? 'Every task is done. Google still decides when to visit each page; x-find checks every morning and adds a task if something new comes up.'
+              : `${esc(t.gain)} ${left()} ${left() === 1 ? 'task' : 'tasks'} left.`
+          }</p>
+          <div class="choices">${next >= 0 ? '<button class="btn main" type="button" id="next">Next task</button>' : ''}</div></div>`;
+        wireTrail();
+        $('next')?.addEventListener('click', () => go(next));
+        $('next')?.focus();
+        if (anim) all ? snowBurst() : playFix(t.scene);
+      }
+
+      function showList(on) {
+        st.list = on;
+        header();
+        if (!on) return task();
+        const all = tasks();
+        const x = ix();
+        $('main').innerHTML = `<div class="enter"><h1>All tasks</h1>
+          <p class="sub">Most important first.${x ? ` Google has ${x.indexed} of your ${x.inspected} pages so far.` : ''}</p>
+          <ul class="list">${all
+            .map((t, j) => {
+              const label = { done: 'Done', waiting: 'Waiting for Google', open: 'To do' }[t.status];
+              return `<li><button type="button" data-j="${j}"><span class="q">${esc(t.headline)}</span><span class="st ${t.status}">${label}</span></button></li>`;
+            })
+            .join('')}</ul>
+          <p class="foot">Want the numbers? <a href="/details?site=${st.site}">See the full report</a>: scores, search results, history.</p></div>`;
+        document
+          .querySelectorAll('[data-j]')
+          .forEach((b) => b.addEventListener('click', () => go(Number(b.dataset.j))));
+      }
+
+      function go(i) {
+        st.i = i;
+        st.list = false;
+        task();
+        scrollTo(0, 0);
+      }
+
+      // ---------- Actions ----------
+      function show(kind, icon, text, small = '') {
+        const r = $('result');
+        if (!r) return;
+        r.className = `result on ${kind}`;
+        r.innerHTML = `${icon}<div>${esc(text)}${small ? `<small>${esc(small)}</small>` : ''}</div>`;
+      }
+
+      async function markAsked(t) {
+        try {
+          await api(`/api/sites/${st.site}/actions`, {
+            method: 'POST',
+            body: JSON.stringify({ key: t.key, status: 'waiting' }),
+          });
+          await refresh();
+          task();
+          show(
+            'wait',
+            I.clock,
+            'Noted. Google usually takes a few days.',
+            'x-find checks every morning and moves this to done when they’re in.',
+          );
+        } catch (e) {
+          show('fail', I.x, `That didn’t save: ${e.message}`);
+        }
+      }
+
+      async function check(t) {
+        if (st.busy) return;
+        st.busy = true;
+        const btn = $('check');
+        if (btn) btn.disabled = true;
+        const r = $('result');
+        r.className = 'result on busy';
+        r.innerHTML = `<span class="spin" aria-hidden="true"></span><div>${t.check === 'search' ? 'Asking Google…' : `Checking ${esc(st.view.site.origin.replace(/^https?:\/\//, ''))}…`}</div>`;
+        try {
+          const res = await api(`/api/sites/${st.site}/actions/check`, {
+            method: 'POST',
+            body: JSON.stringify({ key: t.key }),
+          });
+          await refresh();
+          const idx = tasks().findIndex((x) => x.key === t.key);
+          if (res.status === 'done' && idx >= 0) {
+            st.i = idx;
+            st.just = t.key;
+            task();
+          } else if (res.checkFailed) {
+            task();
+            show('fail', I.x, 'The check couldn’t reach your site.', res.checkFailed);
+          } else if (t.check === 'search') {
+            task();
+            show('wait', I.clock, 'Not in Google yet.', 'Checked just now. x-find asks again tomorrow morning.');
+          } else if (res.status === 'expired' || idx < 0) {
+            task();
+            show(
+              'wait',
+              I.clock,
+              'This one no longer applies.',
+              'The numbers behind it changed, so it was taken off your list.',
+            );
+          } else {
+            task();
+            const still = res.task?.pages?.length
+              ? ` Still affected: ${res.task.pages.map((p) => p.url.replace(st.view.site.origin, '') || '/').join(', ')}.`
+              : '';
+            show('fail', I.x, `Not fixed yet.${still}`, 'Checked just now. Deploy the change, then check again.');
+          }
+        } catch (e) {
+          task();
+          show('fail', I.x, 'The check didn’t run.', e.message);
+        } finally {
+          st.busy = false;
+        }
+      }
+
+      function copy(text, msg) {
+        (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
+          () => toast(msg),
+          () => toast('Copy didn’t work here. Open “Fix it yourself” and copy from there.'),
+        );
+      }
+      let tt;
+      function toast(m) {
+        const t = $('toast');
+        t.textContent = m;
+        t.classList.add('on');
+        clearTimeout(tt);
+        tt = setTimeout(() => t.classList.remove('on'), 2600);
+      }
+
+      // ---------- Motion (short, once, never looping) ----------
+      function blinkTwice() {
+        if (reduced) return;
+        const eyes = document.querySelector('#pg .pg-eyes');
+        [1400, 3600].forEach((ms) =>
+          setTimeout(
+            () =>
+              eyes?.animate([{ transform: 'scaleY(1)' }, { transform: 'scaleY(0.1)' }, { transform: 'scaleY(1)' }], {
+                duration: 180,
+              }),
+            ms,
+          ),
+        );
+      }
+      function hop() {
+        document
+          .querySelector('#pg .penguin')
+          ?.animate(
+            [
+              { transform: 'none' },
+              { transform: 'translateY(-20px)' },
+              { transform: 'none' },
+              { transform: 'translateY(-8px)' },
+              { transform: 'none' },
+            ],
+            {
+              duration: 900,
+              easing: 'cubic-bezier(.3,1.6,.5,1)',
+            },
+          );
+      }
+      function playFix(kind) {
+        const E = 'cubic-bezier(.22,1,.36,1)';
+        let t = 300;
+        if (kind === 'reach') {
+          const rope = document.querySelector('#t-bridge .rope');
+          if (rope) {
+            const len = rope.getTotalLength();
+            rope.style.strokeDasharray = len;
+            rope.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], {
+              duration: 500,
+              easing: E,
+              fill: 'backwards',
+            });
+          }
+          const planks = document.querySelectorAll('#t-bridge .plank');
+          planks.forEach((p, i) =>
+            p.animate(
+              [
+                { transform: 'translateY(-26px)', opacity: 0 },
+                { transform: 'none', opacity: 1 },
+              ],
+              { duration: 420, delay: 300 + i * 110, easing: 'cubic-bezier(.3,1.5,.5,1)', fill: 'backwards' },
+            ),
+          );
+          t = 300 + planks.length * 110 + 200;
+          const bricks = document.querySelectorAll('#t-pile .pile-brick');
+          bricks.forEach((b, i) =>
+            b.animate(
+              [
+                { transform: 'translate(-131px, 0)' },
+                { transform: 'translate(-66px, -34px)', offset: 0.5 },
+                { transform: 'none' },
+              ],
+              { duration: 620, delay: t + i * 180, easing: 'ease-in-out', fill: 'backwards' },
+            ),
+          );
+          t += bricks.length * 180 + 400;
+        } else if (kind === 'index') {
+          const fx = $('fx');
+          fx.innerHTML = `<g id="fly">${ART.envelope()}</g>`;
+          $('fly').animate(
+            [
+              { transform: 'translate(760px, 317px) scale(0.85)' },
+              { transform: 'translate(842px, 262px) scale(0.75) rotate(-10deg)', offset: 0.55 },
+              { transform: 'translate(925px, 318px) scale(0.35)', opacity: 1, offset: 0.92 },
+              { transform: 'translate(925px, 318px) scale(0.3)', opacity: 0 },
+            ],
+            { duration: 1000, easing: 'ease-in-out', fill: 'forwards' },
+          );
+          document
+            .querySelector('.mb-flag')
+            ?.animate(
+              [
+                { transform: 'rotate(0deg)' },
+                { transform: 'rotate(-100deg)', offset: 0.7 },
+                { transform: 'rotate(-90deg)' },
+              ],
+              { duration: 500, delay: 950, easing: E, fill: 'backwards' },
+            );
+          t = 1500;
+        } else if (kind === 'linktext') {
+          const tx = document.querySelector('.sign-text');
+          if (tx) {
+            const word = tx.textContent;
+            tx.textContent = '';
+            [...word].forEach((ch, i) => setTimeout(() => (tx.textContent += ch), 300 + i * 120));
+            t = 300 + word.length * 120 + 200;
+          }
+        } else if (kind === 'logo') {
+          const cloth = document.querySelector('.flag-cloth');
+          const em = document.querySelector('.flag-emblem');
+          for (const [el, origin] of [
+            [cloth, '0% 50%'],
+            [em, 'center'],
+          ])
+            if (el) {
+              el.style.transformBox = 'fill-box';
+              el.style.transformOrigin = origin;
+            }
+          cloth?.animate(
+            [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1.06)', offset: 0.7 }, { transform: 'scaleX(1)' }],
+            { duration: 700, delay: 200, easing: E, fill: 'backwards' },
+          );
+          em?.animate(
+            [
+              { opacity: 0, transform: 'scale(0.6)' },
+              { opacity: 1, transform: 'none' },
+            ],
+            { duration: 400, delay: 800, easing: E, fill: 'backwards' },
+          );
+          t = 1200;
+        } else if (kind === 'redirect') {
+          document.querySelector('.board-0')?.animate(
+            [
+              { transform: 'none', opacity: 1 },
+              { transform: 'translate(10px, 70px) rotate(24deg)', opacity: 0 },
+            ],
+            { duration: 700, delay: 300, easing: 'cubic-bezier(.5,0,.75,0)', fill: 'forwards' },
+          );
+          document.querySelector('.board-1')?.animate([{ transform: 'none' }, { transform: 'translateY(-30px)' }], {
+            duration: 500,
+            delay: 900,
+            easing: E,
+            fill: 'forwards',
+          });
+          t = 1400;
+        }
+        setTimeout(hop, Math.max(0, t - 200));
+      }
+      function snowBurst() {
+        const fx = $('fx');
+        for (let i = 0; i < 28; i++) {
+          const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          c.setAttribute('cx', 660 + Math.random() * 720);
+          c.setAttribute('cy', 140);
+          c.setAttribute('r', 2 + Math.random() * 3.5);
+          c.setAttribute('fill', '#FFFFFF');
+          c.setAttribute('stroke', '#C9D8EC');
+          c.setAttribute('stroke-width', '0.8');
+          fx.appendChild(c);
+          c.animate(
+            [
+              { transform: 'translate(0,0)', opacity: 0 },
+              { opacity: 1, offset: 0.15 },
+              { transform: `translate(${(Math.random() - 0.5) * 60}px, ${200 + Math.random() * 40}px)`, opacity: 0 },
+            ],
+            {
+              duration: 1800 + Math.random() * 900,
+              delay: Math.random() * 700,
+              fill: 'both',
+            },
+          ).onfinish = () => c.remove();
+        }
+        setTimeout(hop, 300);
+      }
+
+      // ---------- Data ----------
+      async function refresh() {
+        st.view = await api(`/api/sites/${st.site}`);
+      }
+      let poll = 0;
+      async function load() {
+        clearTimeout(poll);
+        try {
+          st.sites = await api('/api/sites');
+          if (!st.sites.length) {
+            $('toggle-list').hidden = true;
+            return addSiteScreen();
+          }
+          if (st.site === null) st.site = Number(new URLSearchParams(location.search).get('site') ?? rememberedSite());
+          if (!st.sites.some((s) => s.id === st.site)) st.site = st.sites[0].id;
+          rememberSite(st.site);
+          const name = $('site-name');
+          name.innerHTML =
+            st.sites.length > 1
+              ? `<span class="site-pick"><select id="site-pick" aria-label="Site">${st.sites.map((s) => `<option value="${s.id}" ${s.id === st.site ? 'selected' : ''}>${esc(s.origin.replace(/^https?:\/\//, ''))}</option>`).join('')}</select>${I.chev.replace('<svg', '<svg class="chev"')}</span>`
+              : esc(st.sites[0].origin.replace(/^https?:\/\//, ''));
+          $('site-pick')?.addEventListener('change', (e) => {
+            st.site = Number(e.target.value);
+            rememberSite(st.site);
+            st.i = 0;
+            load();
+          });
+          await refresh();
+          if (!st.view.report) {
+            checkingScreen();
+            poll = setTimeout(load, 3000);
+            return;
+          }
+          const firstOpen = tasks().findIndex((t) => t.status !== 'done');
+          st.i = firstOpen >= 0 ? firstOpen : 0;
+          st.list ? showList(true) : task();
+        } catch (e) {
+          $('main').innerHTML = `<h1>x-find can’t load your site right now.</h1><p class="sub">${esc(e.message)}</p>`;
+        }
+      }
+      $('toggle-list').addEventListener('click', () => showList(!st.list));
+      load();
+    </script>
+  </body>
+</html>

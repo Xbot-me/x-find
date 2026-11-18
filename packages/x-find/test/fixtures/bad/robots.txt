@@ -1,0 +1,10 @@
+Disallow: /early/
+User-agent: *
+Disallow: /noindexed/
+Crawl-delay: 5
+Disalow: /typo/
+User-agent: PerplexityBot
+User-agent: GPTBot
+Disallow: /
+Content-Signal: search=yes, ai-train=yes, ai-foo=maybe
+Sitemap: /sitemap.xml

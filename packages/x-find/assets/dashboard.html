@@ -1,0 +1,2930 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>x-find</title>
+    <script>
+      // Apply the saved theme before the first paint, so the page never flashes the wrong one.
+      try {
+        const t = localStorage.getItem('x-find-theme');
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+      } catch {}
+    </script>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #d8c5a5;
+        --surface: #e5d6ba;
+        --surface-2: #cdb994;
+        --ink: #2b2d1c;
+        --ink-2: #3e402a;
+        --ink-3: #47482f;
+        --line: #c4b08d;
+        --line-2: #b39f7c;
+        --accent: #ffd21f;
+        --accent-ink: #2b2d1c;
+        --olive: #5a603c;
+        --olive-2: #4c5232;
+        --olive-ink: #f3ead3;
+        --focus: #4c5232;
+        --series-1: #5a603c;
+        --series-2: #b88f00;
+        --series-3: #9a4a24;
+        --good: #335a1b;
+        --warning: #6a4b00;
+        --serious: #8a3d12;
+        --critical: #9b2318;
+        --grid: #cbb896;
+        --radius: 10px;
+        --font:
+          ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:where(:not([data-theme='light'])) {
+          color-scheme: dark;
+          --bg: #1b1c12;
+          --surface: #25271a;
+          --surface-2: #2f3122;
+          --ink: #e8dcc0;
+          --ink-2: #cdbf9f;
+          --ink-3: #a69a7c;
+          --line: #383a28;
+          --line-2: #494b34;
+          --accent: #ffd21f;
+          --accent-ink: #1b1c12;
+          --olive: #3d4228;
+          --olive-2: #33381f;
+          --olive-ink: #ece0c4;
+          --focus: #ffd21f;
+          --series-1: #a9b07a;
+          --series-2: #ffd21f;
+          --series-3: #d98b5f;
+          --good: #8dc05a;
+          --warning: #f0c14b;
+          --serious: #e58a5a;
+          --critical: #ee6b5b;
+          --grid: #2b2d1f;
+        }
+      }
+      :root[data-theme='dark'] {
+        color-scheme: dark;
+        --bg: #1b1c12;
+        --surface: #25271a;
+        --surface-2: #2f3122;
+        --ink: #e8dcc0;
+        --ink-2: #cdbf9f;
+        --ink-3: #a69a7c;
+        --line: #383a28;
+        --line-2: #494b34;
+        --accent: #ffd21f;
+        --accent-ink: #1b1c12;
+        --olive: #3d4228;
+        --olive-2: #33381f;
+        --olive-ink: #ece0c4;
+        --focus: #ffd21f;
+        --series-1: #a9b07a;
+        --series-2: #ffd21f;
+        --series-3: #d98b5f;
+        --good: #8dc05a;
+        --warning: #f0c14b;
+        --serious: #e58a5a;
+        --critical: #ee6b5b;
+        --grid: #2b2d1f;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+      }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font: 14.5px/1.55 var(--font);
+        letter-spacing: -0.003em;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+      /* Glass: soft colour light behind the page, frosted panels on top of it. */
+      :root {
+        /* One shape rule: panels 14px, tiles and controls 10px, tags fully round. */
+        --radius: 14px;
+        --radius-sm: 10px;
+        --hair: rgb(43 45 28 / 0.09);
+        --hair-2: rgb(43 45 28 / 0.16);
+        --chip: rgb(43 45 28 / 0.07);
+        --zebra: rgb(255 255 255 / 0.22);
+        /* Satin ink: lighter where light hits the top of the letters, deepest at the base. */
+        --shine: linear-gradient(180deg, #4a4f32 0%, #2b2d1c 52%, #1d1f10 100%);
+        /* Letterpress: a 1px light edge under dark letters (a dark edge under light ones in dark mode). */
+        --shine-edge: rgb(255 255 255 / 0.55);
+        --glow-a: rgb(255 210 31 / 0.85);
+        --glow-b: rgb(255 249 232 / 0.85);
+        --glow-c: rgb(255 210 31 / 0.5);
+        --glass-edge: rgb(255 255 255 / 0.3);
+        --glass-top: rgb(255 255 255 / 0.75);
+        --glass-hi: rgb(255 255 255 / 0.55);
+        --glass-drop: rgb(43 45 28 / 0.3);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:where(:not([data-theme='light'])) {
+          --hair: rgb(255 255 255 / 0.07);
+          --hair-2: rgb(255 255 255 / 0.13);
+          --chip: rgb(255 255 255 / 0.07);
+          --zebra: rgb(255 255 255 / 0.025);
+          --shine: linear-gradient(180deg, #fffaf0 0%, #efe3c4 48%, #c9ba93 100%);
+          --shine-edge: rgb(0 0 0 / 0.55);
+          --glow-a: rgb(255 210 31 / 0.22);
+          --glow-b: rgb(130 140 80 / 0.34);
+          --glow-c: rgb(255 210 31 / 0.14);
+          --glass-edge: rgb(255 255 255 / 0.07);
+          --glass-top: rgb(255 255 255 / 0.16);
+          --glass-hi: rgb(255 255 255 / 0.08);
+          --glass-drop: rgb(0 0 0 / 0.5);
+        }
+      }
+      :root[data-theme='dark'] {
+        --hair: rgb(255 255 255 / 0.07);
+        --hair-2: rgb(255 255 255 / 0.13);
+        --chip: rgb(255 255 255 / 0.07);
+        --zebra: rgb(255 255 255 / 0.025);
+        --shine: linear-gradient(180deg, #fffaf0 0%, #efe3c4 48%, #c9ba93 100%);
+        --shine-edge: rgb(0 0 0 / 0.55);
+        --glow-a: rgb(255 210 31 / 0.22);
+        --glow-b: rgb(130 140 80 / 0.34);
+        --glow-c: rgb(255 210 31 / 0.14);
+        --glass-edge: rgb(255 255 255 / 0.07);
+        --glass-top: rgb(255 255 255 / 0.16);
+        --glass-hi: rgb(255 255 255 / 0.08);
+        --glass-drop: rgb(0 0 0 / 0.5);
+      }
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background:
+          radial-gradient(30vw 26vw at 62% 34%, var(--glow-a), transparent 72%),
+          radial-gradient(34vw 30vw at 34% 82%, var(--glow-b), transparent 72%),
+          radial-gradient(22vw 20vw at 92% 88%, var(--glow-c), transparent 72%),
+          radial-gradient(260px 300px at 40px 22%, var(--glow-a), transparent 72%),
+          radial-gradient(240px 260px at 120px 82%, var(--glow-b), transparent 72%);
+      }
+      .num {
+        font-variant-numeric: tabular-nums;
+      }
+      a {
+        color: inherit;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+      [hidden] {
+        display: none !important;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 244px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .shell > * {
+        min-width: 0;
+      }
+      .side {
+        /* A floating pane of olive glass. 90% olive keeps its small light text at 4.5:1 over any light behind it. */
+        position: sticky;
+        top: 12px;
+        height: calc(100vh - 24px);
+        margin: 12px 0 12px 12px;
+        padding: 18px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        border-radius: 22px;
+        overflow: hidden;
+        background:
+          radial-gradient(120% 40% at 30% 0%, rgb(255 255 255 / 0.05), transparent 70%),
+          color-mix(in srgb, var(--olive-2) 90%, transparent);
+        -webkit-backdrop-filter: blur(28px) saturate(170%);
+        backdrop-filter: blur(28px) saturate(170%);
+        border: 1px solid rgb(255 255 255 / 0.1);
+        box-shadow:
+          inset 0 1px 0 rgb(255 255 255 / 0.16),
+          0 24px 60px -30px rgb(27 28 18 / 0.45);
+        color: var(--ink);
+        --ink: var(--olive-ink);
+        --ink-2: #ece4cd;
+        --ink-3: #ebe3ca;
+        --line: rgb(255 255 255 / 0.14);
+        --line-2: rgb(255 255 255 / 0.22);
+        /* Glassy pills inside: the selected item, hover, the site field. */
+        --surface: rgb(0 0 0 / 0.2);
+        --surface-2: rgb(0 0 0 / 0.12);
+        --focus: var(--accent);
+      }
+      /* Faint olive branch growing up from the bottom of the panel. */
+      .side-art {
+        position: absolute;
+        right: -10px;
+        bottom: 84px;
+        width: 250px;
+        height: auto;
+        max-height: calc(100% - 380px);
+        pointer-events: none;
+        z-index: 0;
+      }
+      .side > :not(.side-art) {
+        position: relative;
+        z-index: 1;
+      }
+      .side-art .st {
+        fill: none;
+        stroke: rgb(255 255 255 / 0.16);
+        stroke-width: 1.6;
+        stroke-linecap: round;
+      }
+      .side-art .lf {
+        fill: rgb(255 255 255 / 0.045);
+        stroke: rgb(255 255 255 / 0.15);
+        stroke-width: 1.1;
+      }
+      .side-art .ol {
+        fill: rgb(255 210 31 / 0.22);
+        stroke: rgb(255 210 31 / 0.35);
+        stroke-width: 1;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        /* Grows in once when the page opens. */
+        .side-art .st {
+          stroke-dasharray: 1;
+          stroke-dashoffset: 1;
+          animation: grow 1.6s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards;
+        }
+        .side-art .lf,
+        .side-art .ol {
+          opacity: 0;
+          animation: leaf 0.7s ease-out 0.9s forwards;
+        }
+      }
+      @keyframes grow {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @keyframes leaf {
+        to {
+          opacity: 1;
+        }
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 650;
+        font-size: 15px;
+        padding: 0 8px;
+      }
+      .brand-mark {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: var(--accent);
+        color: var(--accent-ink);
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .site-field {
+        position: relative;
+        display: block;
+      }
+      .site-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+      .site-field select {
+        appearance: none;
+        width: 100%;
+        height: 38px;
+        padding: 0 34px 0 12px;
+        border: 1px solid var(--line-2);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--ink);
+        font-size: 14px;
+        font-weight: 550;
+        text-overflow: ellipsis;
+        cursor: pointer;
+        transition: border-color 0.15s;
+      }
+      /* The open list is drawn by the browser: give it readable colours of its own. */
+      .site-field option {
+        color: #2b2d1c;
+        background: #f3ead3;
+      }
+      .site-field select:hover {
+        border-color: var(--ink-3);
+      }
+      .site-field select:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 1px;
+      }
+      .site-field .chev {
+        position: absolute;
+        right: 10px;
+        bottom: 10px;
+        width: 18px;
+        height: 18px;
+        color: var(--ink-2);
+        pointer-events: none;
+      }
+      .nav {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .nav a {
+        text-decoration: none;
+        padding: 7px 10px;
+        border-radius: 7px;
+        color: var(--ink-2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .nav a:hover {
+        background: var(--surface-2);
+        color: var(--ink);
+      }
+      .nav a.on {
+        background: var(--surface);
+        color: var(--ink);
+        box-shadow:
+          inset 2px 0 0 var(--accent),
+          inset 0 -1px 0 rgb(255 255 255 / 0.12);
+      }
+      .nav .count {
+        font-size: 12px;
+        color: var(--ink-3);
+        margin-left: 6px;
+      }
+      .side-foot {
+        margin-top: auto;
+        font-size: 12px;
+        color: var(--ink-3);
+        padding: 0 8px;
+      }
+
+      main {
+        padding: 24px 32px 80px;
+        max-width: 1240px;
+        width: 100%;
+      }
+      .topbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
+      /* Headings and headline numbers: satin ink with a letterpress edge. Body text stays plain ink for reading. */
+      .topbar h1,
+      h2,
+      .kpi .value,
+      .score .big,
+      .in-google .big {
+        background: var(--shine);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 1px 0 var(--shine-edge));
+      }
+      .in-google .big small {
+        -webkit-text-fill-color: var(--ink-3);
+      }
+      @media (forced-colors: active) {
+        .topbar h1,
+        h2,
+        .kpi .value,
+        .score .big,
+        .in-google .big {
+          background: none;
+          color: CanvasText;
+          -webkit-text-fill-color: CanvasText;
+          filter: none;
+        }
+      }
+      .topbar h1 {
+        font-size: 28px;
+        line-height: 1.15;
+        font-weight: 680;
+        margin: 0;
+        letter-spacing: -0.024em;
+      }
+      .meta {
+        color: var(--ink-3);
+        font-size: 13px;
+        margin-top: 4px;
+      }
+      .theme-seg {
+        display: inline-flex;
+        border-radius: var(--radius-sm);
+        background: var(--chip);
+        padding: 3px;
+      }
+      .theme-seg button {
+        font: inherit;
+        font-size: 13px;
+        color: var(--ink-2);
+        background: none;
+        border: 0;
+        border-radius: 7px;
+        padding: 4px 11px;
+        cursor: pointer;
+      }
+      .theme-seg button:hover {
+        color: var(--ink);
+      }
+      .theme-seg button[aria-pressed='true'] {
+        background: var(--surface);
+        color: var(--ink);
+        box-shadow: 0 1px 2px rgb(43 45 28 / 0.12);
+      }
+      .theme-seg button:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 1px;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .btn {
+        border: 1px solid var(--hair-2);
+        background: color-mix(in srgb, var(--surface) 80%, transparent);
+        box-shadow: inset 0 1px 0 var(--glass-hi);
+        padding: 7px 14px;
+        font-weight: 550;
+        border-radius: var(--radius-sm);
+        transition:
+          border-color 0.15s,
+          transform 0.1s;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .btn:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      .btn:hover {
+        border-color: var(--ink-3);
+      }
+      .btn:active {
+        transform: translateY(1px);
+      }
+      .btn.primary {
+        background: var(--accent);
+        color: var(--accent-ink);
+        border-color: transparent;
+        font-weight: 620;
+      }
+      .spinner {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid currentColor;
+        border-right-color: transparent;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .spinner {
+          animation: none;
+        }
+      }
+
+      .answer {
+        font-size: 20px;
+        line-height: 1.42;
+        font-weight: 520;
+        max-width: 60ch;
+        margin: 2px 0 24px;
+        letter-spacing: -0.014em;
+        text-wrap: pretty;
+      }
+      .answer em {
+        font-style: normal;
+        color: var(--ink-2);
+      }
+      section {
+        margin-top: 56px;
+        scroll-margin-top: 20px;
+      }
+      section > header {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        margin-bottom: 16px;
+      }
+      h2 {
+        font-size: 19px;
+        line-height: 1.25;
+        font-weight: 660;
+        letter-spacing: -0.018em;
+        margin: 0;
+      }
+      .sub {
+        color: var(--ink-3);
+        font-size: 13px;
+        line-height: 1.5;
+        max-width: 72ch;
+      }
+      .grid {
+        display: grid;
+        gap: 12px;
+      }
+      .g3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .g2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .card {
+        /* Mostly solid, so long text stays easy to read over the colour behind it. */
+        background: color-mix(in srgb, var(--surface) 84%, transparent);
+        border: 1px solid var(--hair);
+        border-radius: var(--radius);
+        padding: 18px;
+        min-width: 0;
+        -webkit-backdrop-filter: blur(24px) saturate(150%);
+        backdrop-filter: blur(24px) saturate(150%);
+        box-shadow:
+          inset 0 1px 0 var(--glass-hi),
+          0 14px 34px -22px var(--glass-drop);
+      }
+      @media (prefers-reduced-transparency: reduce) {
+        .card,
+        .side {
+          -webkit-backdrop-filter: none;
+          backdrop-filter: none;
+        }
+        .card {
+          background: var(--surface);
+        }
+        .side {
+          background: var(--olive) !important;
+        }
+        body::before {
+          display: none;
+        }
+      }
+      /* Link map: cards joined by lines (details page) */
+      .lm {
+        background: color-mix(in srgb, var(--surface) 55%, transparent);
+        position: relative;
+        padding: 32px 24px;
+        overflow: hidden;
+      }
+      .lm-canvas {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 210px) minmax(0, 250px) minmax(0, 300px);
+        justify-content: center;
+        column-gap: 96px;
+        align-items: start;
+      }
+      .lm-col {
+        display: grid;
+        gap: 14px;
+        position: relative;
+        z-index: 1;
+      }
+      .lm svg.lm-lines {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+        overflow: visible;
+      }
+      .lm-node {
+        background: color-mix(in srgb, var(--surface) 82%, transparent);
+        border: 1px solid var(--hair-2);
+        border-radius: var(--radius-sm);
+        box-shadow:
+          inset 0 1px 0 var(--glass-hi),
+          0 8px 20px -14px var(--glass-drop);
+        font-size: 14px;
+      }
+      .lm-node > .lm-h,
+      .lm-node > details > summary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 11px 14px;
+        list-style: none;
+        cursor: default;
+      }
+      .lm-node > details > summary {
+        cursor: pointer;
+      }
+      .lm-node > details > summary::-webkit-details-marker {
+        display: none;
+      }
+      .lm-node .lm-name {
+        font-weight: 550;
+        color: var(--ink);
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .lm-count {
+        font-size: 11.5px;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 5px;
+        background: var(--olive);
+        color: var(--olive-ink);
+        font-variant-numeric: tabular-nums;
+      }
+      .lm-chev {
+        width: 14px;
+        height: 14px;
+        color: var(--ink-3);
+        transition: transform 0.25s;
+      }
+      details[open] > summary .lm-chev {
+        transform: rotate(180deg);
+      }
+      .lm-body {
+        border-top: 1px solid var(--hair);
+        padding: 10px 14px 12px;
+        display: grid;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--ink-2);
+      }
+      .lm-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .lm-row .lead {
+        flex: 1;
+      }
+      .lm-pill {
+        font-size: 12.5px;
+        font-variant-numeric: tabular-nums;
+        color: var(--ink);
+        font-weight: 550;
+        white-space: nowrap;
+      }
+      .lm-pages {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+        font-size: 12px;
+        max-height: 220px;
+        overflow: auto;
+      }
+      .lm-pages li {
+        padding: 3px 0;
+        overflow-wrap: anywhere;
+        color: var(--ink-2);
+      }
+      .lm-pages li small {
+        font-family: var(--font);
+        color: var(--ink-3);
+        margin-left: 6px;
+      }
+      .lm-node.warn {
+        border-color: color-mix(in srgb, var(--warning) 55%, var(--line-2));
+      }
+      .lm-node.bad {
+        border-color: color-mix(in srgb, var(--critical) 55%, var(--line-2));
+      }
+      .lm-node.ok-node {
+        border-color: color-mix(in srgb, var(--good) 45%, var(--line-2));
+      }
+      .lm-pause {
+        font: inherit;
+        font-size: 12.5px;
+        color: var(--ink-2);
+        background: var(--chip);
+        border: 0;
+        border-radius: 999px;
+        padding: 3px 11px;
+        cursor: pointer;
+      }
+      .lm-pause:hover {
+        color: var(--ink);
+      }
+      .lm-pause:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+      .lm-legend {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        justify-content: center;
+        margin-top: 26px;
+        font-size: 12.5px;
+        color: var(--ink-3);
+      }
+      .lm-legend svg {
+        width: 26px;
+        height: 8px;
+        vertical-align: middle;
+        margin-right: 6px;
+      }
+      @media (max-width: 1100px) {
+        .lm-canvas {
+          grid-template-columns: minmax(0, 1fr);
+          row-gap: 14px;
+          max-width: 420px;
+          margin: 0 auto;
+        }
+        .lm svg.lm-lines {
+          display: none;
+        }
+        .lm-col {
+          padding-left: 18px;
+          border-left: 2px solid var(--line);
+        }
+        .lm-col.c-home {
+          padding-left: 0;
+          border-left: 0;
+        }
+      }
+      .card h3 {
+        margin: 0 0 2px;
+        font-size: 13.5px;
+        font-weight: 600;
+        letter-spacing: -0.005em;
+        color: var(--ink);
+      }
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        font-weight: 550;
+        padding: 2px 9px;
+        border-radius: 999px;
+        background: var(--chip);
+        color: var(--ink-2);
+        white-space: nowrap;
+        text-decoration: none;
+      }
+      .tag.on {
+        color: var(--good);
+        background: color-mix(in srgb, var(--good) 13%, transparent);
+      }
+      .tag.bad {
+        background: color-mix(in srgb, var(--critical) 12%, transparent);
+      }
+
+      .score .row {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .score .big {
+        font-size: 40px;
+        font-weight: 650;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        margin-top: 6px;
+      }
+      .score .what {
+        color: var(--ink-3);
+        font-size: 12.5px;
+      }
+      .score .loss {
+        font-size: 12.5px;
+        color: var(--ink-2);
+        margin-top: 8px;
+      }
+      .score .delta {
+        font-size: 12.5px;
+        color: var(--ink-3);
+      }
+      .bar {
+        height: 4px;
+        border-radius: 99px;
+        background: var(--chip);
+        overflow: hidden;
+        margin-top: 10px;
+      }
+      .bar > i {
+        display: block;
+        height: 100%;
+        border-radius: 99px;
+        background: var(--olive);
+      }
+
+      .task {
+        border-top: 1px solid var(--hair);
+      }
+      .task:first-child {
+        border-top: 0;
+      }
+      .task summary {
+        list-style: none;
+        cursor: pointer;
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: start;
+        padding: 13px 4px;
+      }
+      .task summary::-webkit-details-marker {
+        display: none;
+      }
+      .sev {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-top: 6px;
+        display: inline-block;
+      }
+      .sev.error {
+        background: var(--critical);
+      }
+      .sev.warning {
+        background: var(--warning);
+      }
+      .sev.notice {
+        background: var(--ink-3);
+      }
+      .sev.good {
+        background: var(--good);
+      }
+      .sev.none {
+        background: transparent;
+        box-shadow: inset 0 0 0 1.5px var(--ink-3);
+      }
+      .task .t {
+        font-weight: 550;
+      }
+      .task .d {
+        color: var(--ink-2);
+        font-size: 13px;
+      }
+      .task .body {
+        margin: 0 0 14px 34px;
+      }
+      .task .fix {
+        color: var(--ink);
+        margin: 0 0 8px;
+      }
+      .task ul {
+        margin: 0 0 8px;
+        padding-left: 18px;
+        color: var(--ink-2);
+      }
+      .task li {
+        margin: 3px 0;
+        overflow-wrap: anywhere;
+      }
+      .task .ev {
+        color: var(--ink-3);
+        font-size: 12.5px;
+      }
+      .task .src {
+        font-size: 12.5px;
+        color: var(--ink-3);
+        overflow-wrap: anywhere;
+      }
+      .task .src a {
+        color: var(--ink-2);
+      }
+      .foot-row {
+        color: var(--ink-3);
+        font-size: 13px;
+        padding: 12px 4px 2px;
+        border-top: 1px solid var(--hair);
+      }
+      .linkish {
+        background: none;
+        border: 0;
+        padding: 0;
+        color: var(--ink-2);
+        text-decoration: underline;
+        cursor: pointer;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th {
+        text-align: left;
+        font-weight: 600;
+        color: var(--ink-3);
+        font-size: 12px;
+        padding: 0 12px 10px;
+        border-bottom: 1px solid var(--hair-2);
+        white-space: nowrap;
+      }
+      td {
+        padding: 10px 12px;
+        vertical-align: top;
+      }
+      /* Soft banding instead of a line under every row. */
+      tbody tr:nth-child(even) td {
+        background: var(--zebra);
+      }
+      tbody tr td:first-child {
+        border-radius: 8px 0 0 8px;
+      }
+      tbody tr td:last-child {
+        border-radius: 0 8px 8px 0;
+      }
+      td.r,
+      th.r {
+        text-align: right;
+      }
+      .tablewrap {
+        overflow-x: auto;
+      }
+      .ok {
+        color: var(--good);
+        font-weight: 600;
+      }
+      .bad {
+        color: var(--critical);
+        font-weight: 600;
+      }
+      .muted {
+        color: var(--ink-3);
+      }
+
+      .chart {
+        position: relative;
+      }
+      .chart svg {
+        display: block;
+        width: 100%;
+        overflow: visible;
+      }
+      .axis text {
+        fill: var(--ink-3);
+        font-size: 11px;
+      }
+      .gridline {
+        stroke: var(--grid);
+        stroke-width: 1;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        font-size: 12.5px;
+        color: var(--ink-2);
+        margin: 2px 0 8px;
+      }
+      .legend i {
+        display: inline-block;
+        width: 12px;
+        height: 3px;
+        border-radius: 2px;
+        margin-right: 6px;
+        vertical-align: middle;
+      }
+      .tip {
+        position: absolute;
+        pointer-events: none;
+        background: var(--ink);
+        color: var(--bg);
+        font-size: 12px;
+        padding: 6px 9px;
+        border-radius: 7px;
+        white-space: nowrap;
+        transform: translate(-50%, calc(-100% - 10px));
+        opacity: 0;
+        transition: opacity 0.08s;
+      }
+
+      .empty {
+        border: 1px dashed var(--line-2);
+        border-radius: var(--radius);
+        padding: 18px;
+        color: var(--ink-2);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .empty b {
+        color: var(--ink);
+      }
+      .change {
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr);
+        gap: 10px;
+        padding: 8px 0;
+        border-top: 1px solid var(--hair);
+      }
+      .change:first-of-type {
+        border-top: 0;
+      }
+      .change .u {
+        color: var(--ink-3);
+        font-size: 12.5px;
+        overflow-wrap: anywhere;
+      }
+      .conn {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        padding: 14px 0;
+        border-top: 1px solid var(--hair);
+      }
+      .conn:first-child {
+        border-top: 0;
+        padding-top: 0;
+      }
+      .conn .what {
+        color: var(--ink-3);
+        font-size: 12.5px;
+      }
+      .err-banner {
+        border: 1px solid var(--critical);
+        color: var(--ink);
+        border-radius: var(--radius);
+        padding: 10px 14px;
+        margin-bottom: 18px;
+        background: var(--surface);
+      }
+      form.add {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      form.add input {
+        flex: 1 1 260px;
+        padding: 8px 12px;
+        border: 1px solid var(--hair-2);
+        border-radius: var(--radius-sm);
+        background: color-mix(in srgb, var(--surface) 80%, transparent);
+      }
+
+      .g4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+      .kpi .value {
+        font-size: 30px;
+        line-height: 1.1;
+        font-weight: 660;
+        letter-spacing: -0.028em;
+        font-variant-numeric: tabular-nums;
+        margin: 10px 0 4px;
+      }
+      .kpi .delta {
+        font-size: 12.5px;
+        color: var(--ink-2);
+      }
+      .up {
+        color: var(--good);
+      }
+      .down {
+        color: var(--critical);
+      }
+      .hbars .row {
+        display: grid;
+        grid-template-columns: 140px minmax(0, 1fr) 84px;
+        gap: 10px;
+        align-items: center;
+        padding: 5px 0;
+      }
+      .hbars .fill {
+        display: block;
+        height: 14px;
+        border-radius: 0 6px 6px 0;
+        background: var(--series-1);
+      }
+      .hbars .lab {
+        color: var(--ink-2);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .hbars .val {
+        text-align: right;
+        color: var(--ink-2);
+        font-size: 12.5px;
+      }
+      .stack {
+        display: flex;
+        height: 18px;
+        gap: 2px;
+        margin: 10px 0 12px;
+      }
+      .stack > span {
+        display: block;
+        height: 100%;
+        min-width: 3px;
+      }
+      .stack > span:first-child {
+        border-radius: 4px 0 0 4px;
+      }
+      .stack > span:last-child {
+        border-radius: 0 4px 4px 0;
+      }
+      .keys {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        font-size: 13px;
+        color: var(--ink-2);
+      }
+      .keys i {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        margin-right: 6px;
+        vertical-align: -1px;
+      }
+      .week {
+        margin-bottom: 12px;
+      }
+      .week .head {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .week .stage {
+        margin: 6px 0 0;
+        max-width: 820px;
+      }
+      .week ol.actions {
+        list-style: none;
+        margin: 14px 0 0;
+        padding: 0;
+        counter-reset: act;
+      }
+      .week ol.actions > li {
+        counter-increment: act;
+        border-top: 1px solid var(--hair);
+        padding: 14px 0 4px 34px;
+        position: relative;
+      }
+      .week ol.actions > li::before {
+        content: counter(act);
+        position: absolute;
+        left: 0;
+        top: 14px;
+        width: 22px;
+        height: 22px;
+        border-radius: 99px;
+        background: var(--ink);
+        color: var(--surface);
+        font-size: 12px;
+        font-weight: 650;
+        display: grid;
+        place-items: center;
+      }
+      .week .title {
+        font-weight: 600;
+        overflow-wrap: anywhere;
+      }
+      .week .note {
+        color: var(--serious);
+        font-size: 13px;
+        margin-top: 2px;
+      }
+      .week .why {
+        color: var(--ink-2);
+        margin: 4px 0 0;
+        overflow-wrap: anywhere;
+      }
+      .week ol.steps {
+        margin: 8px 0 0;
+        padding-left: 20px;
+      }
+      .week ol.steps li {
+        margin: 4px 0;
+      }
+      .week .pages {
+        margin: 8px 0 0;
+        padding: 0;
+        list-style: none;
+        font-size: 13px;
+      }
+      .week .pages li {
+        margin: 3px 0;
+        overflow-wrap: anywhere;
+      }
+      .week .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        align-items: center;
+        margin-top: 10px;
+        font-size: 13px;
+        color: var(--ink-3);
+      }
+      .week .meta .btn {
+        padding: 3px 10px;
+        font-size: 13px;
+      }
+      .week details {
+        margin-top: 12px;
+        border-top: 1px solid var(--hair);
+        padding-top: 10px;
+      }
+      .week summary {
+        cursor: pointer;
+        color: var(--ink-2);
+        font-size: 13px;
+      }
+      .week .small-list {
+        margin: 8px 0 0;
+        padding-left: 18px;
+        font-size: 13px;
+        color: var(--ink-2);
+      }
+      .in-google {
+        margin-bottom: 12px;
+      }
+      .in-google .head {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .in-google .big {
+        white-space: nowrap;
+        font-size: 40px;
+        font-weight: 650;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        margin-top: 6px;
+      }
+      .in-google .big small {
+        font-size: 22px;
+        color: var(--ink-3);
+        font-weight: 550;
+        letter-spacing: -0.01em;
+        margin-left: 2px;
+      }
+      .in-google .verdict {
+        margin: 12px 0 0;
+        max-width: 820px;
+      }
+      .reasons {
+        margin: 8px 0 0;
+        padding-left: 18px;
+        color: var(--ink-2);
+      }
+      .reasons li {
+        margin: 6px 0;
+      }
+      .src {
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .scores-note {
+        margin: 8px 0 0;
+      }
+      .limits {
+        margin-top: 10px;
+      }
+      .limits > summary {
+        cursor: pointer;
+        font-size: 13px;
+        color: var(--ink-3);
+        width: fit-content;
+      }
+      .limits > summary:hover {
+        color: var(--ink);
+      }
+      .limits[open] > summary {
+        margin-bottom: 8px;
+      }
+      .ix-group {
+        border-top: 1px solid var(--hair);
+        margin-top: 16px;
+        padding-top: 14px;
+      }
+      .ix-group .state {
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+        flex-wrap: wrap;
+      }
+      .ix-group p {
+        margin: 4px 0 0;
+      }
+      .why {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .why .tag {
+        white-space: normal;
+      }
+      .opp ul {
+        margin: 8px 0 0;
+        padding-left: 18px;
+      }
+      .opp li {
+        margin: 6px 0;
+        overflow-wrap: anywhere;
+      }
+      .opp .rule {
+        font-size: 12.5px;
+        color: var(--ink-3);
+        margin-top: 4px;
+      }
+      .q {
+        font-weight: 500;
+        overflow-wrap: anywhere;
+      }
+      .pg {
+        color: var(--ink-3);
+        font-size: 12.5px;
+        overflow-wrap: anywhere;
+      }
+      .setup ol {
+        margin: 6px 0 0;
+        padding-left: 20px;
+        color: var(--ink-2);
+      }
+      .setup li {
+        margin: 6px 0;
+      }
+      .setup code {
+        background: var(--surface-2);
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 12.5px;
+        overflow-wrap: anywhere;
+      }
+      @media (max-width: 1080px) {
+        .g4 {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .g3 {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 820px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+        .side {
+          position: static;
+          height: auto;
+          margin: 8px 8px 0;
+          border-radius: 18px;
+          padding: 14px 16px;
+          gap: 12px;
+        }
+        .side-art {
+          display: none;
+        }
+        .nav {
+          flex-direction: row;
+          overflow-x: auto;
+          gap: 4px;
+          margin: 0 -16px;
+          padding: 0 16px;
+          scrollbar-width: none;
+        }
+        .nav a {
+          white-space: nowrap;
+        }
+        .nav a.on {
+          box-shadow: inset 0 -2px 0 var(--accent);
+        }
+        .side-foot {
+          display: none;
+        }
+        main {
+          padding: 18px 16px 64px;
+        }
+        .g2 {
+          grid-template-columns: 1fr;
+        }
+        .answer {
+          font-size: 17px;
+        }
+        .hide-sm {
+          display: none;
+        }
+        th,
+        td {
+          padding: 8px 6px;
+          font-size: 13px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="side">
+        <svg
+          class="side-art"
+          viewBox="0 0 240 520"
+          preserveAspectRatio="xMaxYMax meet"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path class="st" pathLength="1" d="M232 520 C 196 430, 150 360, 70 250" />
+          <path class="st" pathLength="1" d="M163 383 C 150 352, 156 320, 176 292" />
+          <path
+            class="lf"
+            d="M0 0 C 9 -7, 34 -7, 46 0 C 34 7, 9 7, 0 0 Z"
+            transform="translate(219 488) rotate(-76) scale(0.88)"
+          />
+          <path
+            class="lf"
+            d="M0 0 C 9 -7, 34 -7, 46 0 C 34 7, 9 7, 0 0 Z"
+            transform="translate(207 463) rotate(-154) scale(0.95)"
+          />
+          <path
+            class="lf"
+            d="M0 0 C 9 -7, 34 -7, 46 0 C 34 7, 9 7, 0 0 Z"
+            transform="translate(194 438) rotate(-80) scale(1.02)"
+          />
+          <path
+            class="lf"
+            d="M0 0 C 9 -7, 34 -7, 46 0 C 34 7, 9 7, 0 0 Z"
+            transform="translate(180 413) rotate(-158) scale(1.09)"
+          />
+          <path
+            class="lf"
+            d="M0 0 C 9 -7, 34 -7, 46 0 C 34 7, 9 7, 0 0 Z"
+            transform="translate(164 387) rotate(-84) scale(1.14)"
+          />
+          <path
+            class="lf"
+            d="M0 0 C 9 -7, 34 -7, 46 0 C 34 7, 9 7, 0 0 Z"
+            transform="translate(148 361) rotate(-161) scale(1.07)"
+          />
+          <path
+            class="lf"
+            d="M0 0 C 9 -7, 34 -7, 46 0 C 34 7, 9 7, 0 0 Z"
+            transform="translate(130 334) rotate(-86) scale(1.00)"
+          />
+          <path
+            class="lf"
+            d="M0 0 C 9 -7, 34 -7, 46 0 C 34 7, 9 7, 0 0 Z"
+            transform="translate(110 306) rotate(-163) scale(0.93)"
+          />
+          <path
+            class="lf"
+            d="M0 0 C 9 -7, 34 -7, 46 0 C 34 7, 9 7, 0 0 Z"
+            transform="translate(89 276) rotate(-88) scale(0.86)"
+          />
+          <path
+            class="lf"
+            d="M0 0 C 9 -7, 34 -7, 46 0 C 34 7, 9 7, 0 0 Z"
+            transform="translate(70 250) rotate(-126) scale(0.9)"
+          />
+          <path
+            class="lf"
+            d="M0 0 C 9 -7, 34 -7, 46 0 C 34 7, 9 7, 0 0 Z"
+            transform="translate(170 330) rotate(-70) scale(0.75)"
+          />
+          <path
+            class="lf"
+            d="M0 0 C 9 -7, 34 -7, 46 0 C 34 7, 9 7, 0 0 Z"
+            transform="translate(158 355) rotate(-150) scale(0.75)"
+          />
+          <path
+            class="lf"
+            d="M0 0 C 9 -7, 34 -7, 46 0 C 34 7, 9 7, 0 0 Z"
+            transform="translate(176 292) rotate(-60) scale(0.75)"
+          />
+          <ellipse class="ol" cx="140" cy="372" rx="5.5" ry="7" transform="rotate(20 140 372)" />
+          <ellipse class="ol" cx="124" cy="330" rx="5.5" ry="7" transform="rotate(-15 124 330)" />
+          <ellipse class="ol" cx="206" cy="452" rx="5.5" ry="7" transform="rotate(30 206 452)" />
+        </svg>
+        <div class="brand"><span class="brand-mark" aria-hidden="true">x</span> x-find</div>
+        <label class="site-field">
+          <span class="site-label">Site</span>
+          <select id="site-select" aria-label="Site"></select>
+          <svg
+            class="chev"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m7 10 5 5 5-5" />
+          </svg>
+        </label>
+        <nav class="nav" aria-label="Sections">
+          <a href="/" id="back-to-tasks">← Back to tasks</a>
+          <a class="on" href="#links">Links</a>
+          <a href="#overview">Overview</a>
+          <a href="#todo">To do <span class="count num" id="nav-todo"></span></a>
+          <a href="#changes">Changes</a>
+          <a href="#search">Search</a>
+          <a href="#ai">AI engines</a>
+          <a href="#geo">Who you are</a>
+          <a href="#history">History</a>
+          <a href="#connections">Connections</a>
+        </nav>
+        <div class="side-foot" id="side-foot"></div>
+      </aside>
+
+      <main>
+        <div id="error" class="err-banner" hidden></div>
+
+        <div id="no-sites" hidden>
+          <div class="topbar"><h1>Add your first site</h1></div>
+          <div class="card">
+            <p style="margin-top: 0">x-find checks the site every day on this computer and keeps the history here.</p>
+            <form class="add" id="add-form">
+              <input name="origin" type="url" required placeholder="https://example.com" aria-label="Site URL" />
+              <button class="btn primary" type="submit">Add and check</button>
+            </form>
+          </div>
+        </div>
+
+        <div id="site" hidden>
+          <div class="topbar">
+            <div>
+              <h1 id="site-name"></h1>
+              <div class="meta num" id="site-meta"></div>
+            </div>
+            <div class="controls">
+              <div class="theme-seg" role="group" aria-label="Theme">
+                <button type="button" data-theme-set="auto" title="Match my computer">Auto</button
+                ><button type="button" data-theme-set="light">Light</button
+                ><button type="button" data-theme-set="dark">Dark</button>
+              </div>
+              <a class="btn" id="report-link" target="_blank" rel="noopener">Open full report</a>
+              <button class="btn primary" type="button" id="run-btn">Check now</button>
+            </div>
+          </div>
+
+          <div id="first-run" class="empty" hidden>
+            <b>Running the first check…</b
+            ><span>It crawls the site, so it takes a minute for a small site. This page updates by itself.</span>
+          </div>
+
+          <div id="content" hidden>
+            <section id="links" style="margin-top: 0">
+              <header>
+                <h2>How your pages link together</h2>
+                <span class="sub" id="links-sub"></span>
+              </header>
+              <div class="card lm" id="linkmap"></div>
+            </section>
+
+            <section id="overview">
+              <header><h2>Overview</h2></header>
+              <p class="answer" id="answer"></p>
+              <div class="card week" id="week" hidden></div>
+              <div class="card in-google" id="in-google" hidden></div>
+              <div class="grid g3" id="scores"></div>
+              <p class="sub scores-note" id="scores-note"></p>
+              <details class="limits">
+                <summary>What these scores can and can't tell you</summary>
+                <div class="card" style="padding: 6px 6px 2px">
+                  <div class="tablewrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Question</th>
+                          <th>x-find</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Can search and AI crawlers reach your pages?</td>
+                          <td>Checked</td>
+                        </tr>
+                        <tr>
+                          <td>Can they read the content without running scripts?</td>
+                          <td>Checked</td>
+                        </tr>
+                        <tr>
+                          <td>Is it clear who you are: name, logo, official profiles?</td>
+                          <td>Partly checked: <a href="#geo">see Who you are</a></td>
+                        </tr>
+                        <tr>
+                          <td>Are your pages in Google, and do people click them?</td>
+                          <td>Measured from Search Console, when connected</td>
+                        </tr>
+                        <tr>
+                          <td>Do ChatGPT, Perplexity or Google's AI answers cite your site?</td>
+                          <td><b>Not measured</b></td>
+                        </tr>
+                        <tr>
+                          <td>Does your brand come up when people ask AI about your field?</td>
+                          <td><b>Not measured</b></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <p class="sub" style="margin-top: 8px">
+                  A crawler being able to read your site is not the same as an AI engine citing it. AEO and GEO scores
+                  cover the first only. Each task says whether it is <b>required</b> (the source says it is broken or
+                  ignored), <b>recommended</b>, or <b>for your information</b>, and marks estimates.
+                </p>
+              </details>
+              <div class="card" style="margin-top: 12px">
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                  "
+                >
+                  <h3>Readiness over time</h3>
+                  <span class="sub" id="history-note"></span>
+                </div>
+                <div class="legend">
+                  <span><i style="background: var(--series-1)"></i>SEO</span
+                  ><span><i style="background: var(--series-2)"></i>AEO</span
+                  ><span><i style="background: var(--series-3)"></i>GEO</span>
+                </div>
+                <div class="chart" id="scores-chart"></div>
+              </div>
+            </section>
+
+            <section id="todo">
+              <header>
+                <h2>To do</h2>
+                <span class="sub">From the latest check. An item disappears when the next check passes.</span>
+              </header>
+              <div class="card" id="tasks"></div>
+            </section>
+
+            <section id="changes">
+              <header>
+                <h2>Changes since the previous check</h2>
+                <span class="sub" id="changes-since"></span>
+              </header>
+              <div class="grid g2" id="changes-body"></div>
+            </section>
+
+            <section id="search">
+              <header>
+                <h2>Google Search</h2>
+                <span class="sub" id="search-sub"></span>
+              </header>
+              <div id="search-body"></div>
+            </section>
+
+            <section id="ai">
+              <header>
+                <h2>AI engines and search crawlers</h2>
+                <span class="sub">robots.txt rules, and a request to the home page as each crawler.</span>
+              </header>
+              <div class="card" style="padding: 6px 6px 2px">
+                <div class="tablewrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Crawler</th>
+                        <th class="hide-sm">Used for</th>
+                        <th>robots.txt</th>
+                        <th>Server</th>
+                      </tr>
+                    </thead>
+                    <tbody id="crawlers"></tbody>
+                  </table>
+                </div>
+              </div>
+              <p class="sub" style="margin-top: 8px">
+                Requests are sent with each crawler's user agent from this computer. A firewall that verifies real
+                crawlers by IP may treat them differently.
+              </p>
+            </section>
+
+            <section id="geo">
+              <header>
+                <h2>Who you are, to search and AI engines</h2>
+                <span class="sub">What your own pages say about your name, organization, people and profiles.</span>
+              </header>
+              <div class="card week" id="geo-steps" hidden></div>
+              <div class="card" id="geo-items"></div>
+            </section>
+
+            <section id="history">
+              <header>
+                <h2>Check history</h2>
+                <span class="sub">The last 20 runs.</span>
+              </header>
+              <div class="card" style="padding: 6px 6px 2px">
+                <div class="tablewrap">
+                  <table class="num">
+                    <thead>
+                      <tr>
+                        <th>When</th>
+                        <th class="hide-sm">How</th>
+                        <th>SEO</th>
+                        <th>AEO</th>
+                        <th>GEO</th>
+                        <th class="hide-sm">Errors</th>
+                        <th class="hide-sm">Warnings</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="runs"></tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+
+            <section id="connections">
+              <header>
+                <h2>Connections</h2>
+                <span class="sub">Each source is optional. Sections show what's missing instead of guessing.</span>
+              </header>
+              <div class="card" id="connections-body"></div>
+              <div class="card" style="margin-top: 12px">
+                <h3>Add another site</h3>
+                <form class="add" id="add-form-2" style="margin-top: 8px">
+                  <input name="origin" type="url" required placeholder="https://example.com" aria-label="Site URL" />
+                  <button class="btn" type="submit">Add and check</button>
+                </form>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const esc = (s) =>
+        String(s ?? '').replace(
+          /[&<>"']/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+        );
+      const LABEL = { seo: 'SEO', aeo: 'AEO', geo: 'GEO' };
+      const WHAT = { seo: 'Search engines', aeo: 'Answer engines', geo: 'Known as an entity' };
+      let sites = [],
+        current = null,
+        view = null,
+        poll = null;
+
+      async function api(path, opts = {}) {
+        const res = await fetch(path, {
+          ...opts,
+          headers: { 'content-type': 'application/json', 'x-find-request': '1', ...(opts.headers || {}) },
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+        return body;
+      }
+      function showError(msg) {
+        const e = $('error');
+        e.textContent = msg;
+        e.hidden = !msg;
+      }
+      const when = (iso) =>
+        new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      const ago = (iso) => {
+        const m = Math.round((Date.now() - Date.parse(iso)) / 60000);
+        if (m < 1) return 'just now';
+        if (m < 60) return `${m} min ago`;
+        const h = Math.round(m / 60);
+        if (h < 24) return `${h} h ago`;
+        return `${Math.round(h / 24)} days ago`;
+      };
+      const path = (url, origin) => (url && url.startsWith(origin) ? url.slice(origin.length) || '/' : url || '');
+
+      // The site you picked, shared with the tasks screen.
+      function rememberedSite() {
+        try {
+          return localStorage.getItem('x-find-site');
+        } catch {
+          return null;
+        }
+      }
+      function rememberSite(id) {
+        try {
+          localStorage.setItem('x-find-site', String(id));
+        } catch {}
+        const back = $('back-to-tasks');
+        if (back) back.href = `/?site=${id}`;
+      }
+
+      async function loadSites() {
+        sites = await api('/api/sites');
+        const sel = $('site-select');
+        sel.innerHTML =
+          sites.map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join('') +
+          '<option value="add">+ Add another site…</option>';
+        $('no-sites').hidden = sites.length > 0;
+        $('site').hidden = sites.length === 0;
+        if (!sites.length) return;
+        const wanted = Number(new URLSearchParams(location.search).get('site') ?? rememberedSite());
+        current = sites.find((s) => s.id === wanted)?.id ?? current ?? sites[0].id;
+        sel.value = String(current);
+        rememberSite(current);
+        await loadSite();
+      }
+
+      async function loadSite() {
+        try {
+          view = await api(`/api/sites/${current}`);
+          showError('');
+          render();
+        } catch (e) {
+          showError(`Could not load the site: ${e.message}`);
+        }
+        clearTimeout(poll);
+        if (view?.running || view?.search?.syncing) poll = setTimeout(loadSite, 3000);
+      }
+
+      // ---------- Link map ----------
+      const LMI = {
+        chev: '<svg class="lm-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
+      };
+      let lmData = null;
+      let lmPlayed = false;
+      function renderLinks(m, origin) {
+        const box = $('linkmap');
+        lmData = m;
+        if (!m || !m.home) {
+          box.innerHTML = '<p class="muted" style="margin:0">The link map appears after the next check.</p>';
+          $('links-sub').textContent = '';
+          return;
+        }
+        const reachable = m.sections.reduce((n, s) => n + s.pages.length, 0);
+        $('links-sub').textContent =
+          `${reachable} pages reachable from your home page${m.unreachable.length ? `, ${m.unreachable.length} not` : ''}${m.broken.length ? `, ${m.broken.length} broken ${m.broken.length === 1 ? 'link' : 'links'}` : ''}`;
+        const pageList = (pages, note) =>
+          `<ul class="lm-pages">${pages.map((p) => `<li>${esc(p.path)}${note ? `<small>${esc(note(p))}</small>` : ''}</li>`).join('')}</ul>`;
+        const node = (id, name, count, cls, body, open = false, dot = '') =>
+          `<div class="lm-node ${cls}" id="${id}">${
+            body
+              ? `<details ${open ? 'open' : ''}><summary>${dot}<span class="lm-name">${esc(name)}</span>${count !== null ? `<span class="lm-count">${count}</span>` : ''}${LMI.chev}</summary><div class="lm-body">${body}</div></details>`
+              : `<div class="lm-h">${dot}<span class="lm-name">${esc(name)}</span>${count !== null ? `<span class="lm-count">${count}</span>` : ''}</div>`
+          }</div>`;
+        const row = (k, v) =>
+          `<div class="lm-row"><span>${k}</span><span class="lead"></span><span class="lm-pill">${v}</span></div>`;
+        const homeBody = `${row('Links to', `${m.home.linksTo} pages`)}${row('Linked from', `${m.home.linkedFrom} pages`)}`;
+        const reasons = {
+          canonical: 'points to another page',
+          noindex: 'noindex',
+          robots: 'blocked in robots.txt',
+          status: 'error or redirect',
+        };
+        const right = [
+          ...m.sections.map((s, i) =>
+            node(
+              `lm-s${i}`,
+              s.name,
+              s.pages.length,
+              '',
+              pageList(s.pages, (p) => (p.depth > 1 ? `${p.depth} clicks` : '')),
+            ),
+          ),
+          m.unreachable.length
+            ? node(
+                'lm-unreach',
+                'Not reachable from home',
+                m.unreachable.length,
+                'warn',
+                `<p style="margin:0">Only the sitemap leads here. Link them from your home page or menu.</p>${pageList(m.unreachable)}`,
+                true,
+                '',
+              )
+            : '',
+          m.broken.length
+            ? node(
+                'lm-broken',
+                'Broken links',
+                m.broken.length,
+                'bad',
+                `<ul class="lm-pages">${m.broken.map((b) => `<li>${esc(b.from)} → ${esc(b.to)}${b.text ? `<small>“${esc(b.text)}”</small>` : ''}</li>`).join('')}</ul>`,
+                true,
+                '',
+              )
+            : node('lm-broken', 'No broken links', null, 'ok-node', '', false, ''),
+          m.keptOut.length
+            ? node(
+                'lm-kept',
+                'Kept out of search',
+                m.keptOut.length,
+                '',
+                pageList(m.keptOut, (p) => reasons[p.reason] || p.reason),
+                false,
+                '',
+              )
+            : '',
+        ].join('');
+        box.innerHTML = `<div class="lm-canvas" id="lm-canvas"><svg class="lm-lines" id="lm-lines" aria-hidden="true"></svg>
+            <div class="lm-col c-in">${node('lm-sitemap', 'Sitemap', m.sitemap, '', `<p style="margin:0">Lists ${m.sitemap} pages, so Google can find them even without links.</p>`)}</div>
+            <div class="lm-col c-home">${node('lm-home', 'Home page', null, '', homeBody, true)}</div>
+            <div class="lm-col c-out">${right}</div></div>
+          <div class="lm-legend">
+            <span><svg viewBox="0 0 26 8"><path d="M1 4H25" stroke="var(--ink-3)" stroke-width="1.6"/></svg>Linked</span>
+            <span><svg viewBox="0 0 26 8"><path d="M1 4H25" stroke="var(--warning)" stroke-width="1.6" stroke-dasharray="4 3"/></svg>Only through the sitemap</span>
+            <span><svg viewBox="0 0 26 8"><path d="M1 4H9M17 4H25" stroke="var(--critical)" stroke-width="1.6"/><path d="m11 2 4 4m0-4-4 4" stroke="var(--critical)" stroke-width="1.6"/></svg>No link, or broken</span>
+            <span><svg viewBox="0 0 26 8"><path d="M1 4H25" stroke="var(--ink-3)" stroke-width="1.6" stroke-dasharray="1 3" stroke-linecap="round"/></svg>Kept out on purpose</span>
+            ${calmMotion() ? '' : `<button type="button" class="lm-pause" id="lm-pause" aria-pressed="${lmPaused}">${lmPaused ? 'Play' : 'Pause'} motion</button>`}
+          </div>`;
+        $('lm-pause')?.addEventListener('click', (e) => {
+          lmPaused = !lmPaused;
+          e.currentTarget.setAttribute('aria-pressed', String(lmPaused));
+          e.currentTarget.textContent = `${lmPaused ? 'Play' : 'Pause'} motion`;
+          syncFlow();
+        });
+        watchLinkMap();
+        requestAnimationFrame(() => drawLinks(!lmPlayed));
+      }
+
+      const calmMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+      let lmPaused = false;
+      let lmOnScreen = true;
+      let lmSize = '';
+      let lmResize = null;
+      let lmSeen = null;
+      /** Redraw whenever the map's own size changes (cards opening, fonts, theme, window), not only on resize. */
+      function watchLinkMap() {
+        lmResize?.disconnect();
+        lmSeen?.disconnect();
+        const canvas = $('lm-canvas');
+        if (!canvas) return;
+        lmSize = '';
+        let queued = false;
+        lmResize = new ResizeObserver(() => {
+          const r = canvas.getBoundingClientRect();
+          const size = `${Math.round(r.width)}x${Math.round(r.height)}`;
+          if (size === lmSize || queued) return;
+          const first = lmSize === '';
+          lmSize = size;
+          if (first) return; // The first draw comes from renderLinks.
+          queued = true;
+          requestAnimationFrame(() => {
+            queued = false;
+            drawLinks(false);
+          });
+        });
+        lmResize.observe(canvas);
+        // The dots only move while the map is on screen and the tab is visible.
+        lmSeen = new IntersectionObserver((es) => {
+          lmOnScreen = es.some((e) => e.isIntersecting);
+          syncFlow();
+        });
+        lmSeen.observe(canvas);
+      }
+      document.addEventListener('visibilitychange', () => syncFlow());
+      /** Runs or holds the flowing dots: paused by the button, off screen, in a hidden tab, or before the lines draw in. */
+      function syncFlow() {
+        const svgEl = $('lm-lines');
+        if (!svgEl || !svgEl.pauseAnimations) return;
+        const run = lmPlayed && !lmPaused && lmOnScreen && document.visibilityState === 'visible';
+        if (run) svgEl.unpauseAnimations();
+        else svgEl.pauseAnimations();
+      }
+
+      /**
+       * Draws the connectors between cards. Working links carry a steady flow of dots; a link that is missing or broken
+       * gets its own short stub into its card, cut by a red cross, and nothing flows through it.
+       * animate = draw the lines in once (when the map first scrolls into view), then start the flow.
+       */
+      function drawLinks(animate) {
+        const canvas = $('lm-canvas');
+        const svgEl = $('lm-lines');
+        if (!canvas || !svgEl || getComputedStyle(svgEl).display === 'none') return;
+        const c = canvas.getBoundingClientRect();
+        if (!c.width) return;
+        const box = (id) => {
+          const el = $(id);
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          const head = (el.querySelector('summary') || el.querySelector('.lm-h') || el).getBoundingClientRect();
+          return {
+            l: r.left - c.left,
+            r: r.right - c.left,
+            t: r.top - c.top,
+            b: r.bottom - c.top,
+            cy: head.top + head.height / 2 - c.top,
+          };
+        };
+        const home = box('lm-home');
+        const sitemap = box('lm-sitemap');
+        if (!home) return;
+        const gap = 6; // Space between a line's arrow and the card.
+        // Orthogonal connector with rounded corners: right edge of a, then down the trunk at xm, into b.
+        const elbow = (x1, y1, x2, y2, xm) => {
+          if (Math.abs(y2 - y1) < 2) return `M${x1} ${y1} H${x2}`;
+          const r = Math.min(10, Math.abs(y2 - y1) / 2);
+          const dy = y2 > y1 ? r : -r;
+          return `M${x1} ${y1} H${xm - r} Q${xm} ${y1} ${xm} ${y1 + dy} V${y2 - dy} Q${xm} ${y2} ${xm + r} ${y2} H${x2}`;
+        };
+        const edges = [];
+        const outs = [...document.querySelectorAll('.c-out > .lm-node')].map((el) => ({ id: el.id, b: box(el.id) }));
+        const firstOut = outs[0]?.b;
+        // The trunk sits a little nearer the home card, so each stub into the right-hand column has room for a cross.
+        const midR = firstOut ? home.r + (firstOut.l - home.r) * 0.38 : home.r + 36;
+        if (sitemap)
+          edges.push({ d: elbow(sitemap.r, sitemap.cy, home.l - gap, home.cy, (sitemap.r + home.l) / 2), kind: 'ok' });
+        const broken = lmData.broken.length > 0;
+        const lastY = outs.length ? outs[outs.length - 1].b.cy : home.cy;
+        // One shared trunk down to the last card, so every stub has a line to branch from.
+        if (outs.length)
+          edges.push({
+            d:
+              lastY - home.cy > 12
+                ? `M${home.r} ${home.cy} H${midR - 10} Q${midR} ${home.cy} ${midR} ${home.cy + 10} V${lastY}`
+                : `M${home.r} ${home.cy} H${midR}`,
+            kind: 'trunk',
+          });
+        for (const { id, b: t } of outs) {
+          const stub = `M${midR} ${t.cy} H${t.l - gap}`;
+          if (id === 'lm-unreach') edges.push({ d: stub, kind: 'missing', x: t });
+          else if (id === 'lm-broken') edges.push({ d: stub, kind: broken ? 'broken' : 'ok', x: t });
+          else if (id === 'lm-kept') edges.push({ d: stub, kind: 'kept' });
+          else edges.push({ d: elbow(home.r, home.cy, t.l - gap, t.cy, midR), kind: 'ok', flow: true });
+        }
+        // The sitemap is the only way in to unreachable pages: its own lane, under the home card, entering lower down.
+        const un = outs.find((o) => o.id === 'lm-unreach')?.b;
+        if (un && sitemap) {
+          const xa = (sitemap.r + home.l) / 2;
+          const y = Math.min(un.cy + 26, un.b - 10);
+          edges.push({
+            d: `M${sitemap.r} ${sitemap.cy} H${xa - 10} Q${xa} ${sitemap.cy} ${xa} ${sitemap.cy + 10} V${y - 10} Q${xa} ${y} ${xa + 10} ${y} H${un.l - gap}`,
+            kind: 'sitemap',
+            flow: true,
+          });
+        }
+        if (sitemap) edges[0].flow = true;
+
+        const style = {
+          ok: 'stroke="var(--ink-3)" stroke-width="1.6"',
+          trunk: 'stroke="var(--ink-3)" stroke-width="1.6"',
+          sitemap: 'stroke="var(--warning)" stroke-width="1.6" stroke-dasharray="5 4"',
+          missing: 'stroke="var(--critical)" stroke-width="1.6"',
+          broken: 'stroke="var(--critical)" stroke-width="1.6"',
+          kept: 'stroke="var(--ink-3)" stroke-width="1.6" stroke-dasharray="1 4" stroke-linecap="round"',
+        };
+        const arrow = (k) => (k === 'trunk' ? '' : 'marker-end="url(#lm-arrow)"');
+        svgEl.setAttribute('viewBox', `0 0 ${c.width} ${c.height}`);
+        svgEl.innerHTML = `<defs><marker id="lm-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 9 5 1 9" fill="none" stroke="context-stroke" stroke-width="1.6"/></marker></defs>
+          ${edges.map((e, i) => `<path class="lm-e lm-${e.kind}" id="lm-p${i}" d="${e.d}" fill="none" ${style[e.kind]} ${arrow(e.kind)}/>`).join('')}
+          <g id="lm-flow"></g><g id="lm-marks"></g>`;
+
+        // A gap and a red cross in the middle of each missing or broken stub.
+        const marks = $('lm-marks');
+        edges.forEach((e, i) => {
+          if (e.kind !== 'missing' && e.kind !== 'broken') return;
+          const p = $(`lm-p${i}`);
+          const len = p.getTotalLength();
+          const pt = p.getPointAtLength(len / 2);
+          p.setAttribute('stroke-dasharray', `${Math.max(0, len / 2 - 10)} 20 ${len}`);
+          marks.insertAdjacentHTML(
+            'beforeend',
+            `<g class="lm-x" style="transform: translate(${pt.x}px, ${pt.y}px)" data-x="${pt.x}" data-y="${pt.y}"><circle r="8.5" fill="var(--surface)" stroke="var(--critical)" stroke-width="1.5"/><path d="M-3.2 -3.2 3.2 3.2M3.2 -3.2-3.2 3.2" stroke="var(--critical)" stroke-width="1.7" stroke-linecap="round"/></g>`,
+          );
+        });
+
+        // The flow: small dots moving along every working link, forever, at an even speed.
+        // Missing links get a dot that runs up to the cross and fades: it tries, and stops.
+        const calm = calmMotion();
+        if (!calm) {
+          const flow = $('lm-flow');
+          const lead = animate ? 1.8 : 0;
+          let n = 0;
+          edges.forEach((e, i) => {
+            const p = $(`lm-p${i}`);
+            const len = p.getTotalLength();
+            if (e.flow) {
+              const dur = Math.max(1.6, len / 70);
+              const dots = Math.max(1, Math.round(len / 180));
+              for (let k = 0; k < dots; k++) {
+                const begin = (lead + (n % 5) * 0.35 + (k * dur) / dots).toFixed(2);
+                const fill = e.kind === 'sitemap' ? 'var(--warning)' : 'var(--accent)';
+                flow.insertAdjacentHTML(
+                  'beforeend',
+                  `<circle r="3" fill="${fill}" stroke="var(--olive)" stroke-width="1" opacity="0"><animateMotion dur="${dur.toFixed(2)}s" begin="${begin}s" repeatCount="indefinite" calcMode="linear"><mpath href="#lm-p${i}"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.08;0.88;1" dur="${dur.toFixed(2)}s" begin="${begin}s" repeatCount="indefinite"/></circle>`,
+                );
+              }
+              n++;
+            } else if (e.kind === 'missing') {
+              const begin = (lead + 0.6).toFixed(2);
+              flow.insertAdjacentHTML(
+                'beforeend',
+                `<circle r="3" fill="var(--critical)" opacity="0"><animateMotion dur="2.4s" begin="${begin}s" repeatCount="indefinite" keyPoints="0;0.4;0.4" keyTimes="0;0.4;1" calcMode="linear"><mpath href="#lm-p${i}"/></animateMotion><animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.1;0.4;0.55;1" dur="2.4s" begin="${begin}s" repeatCount="indefinite"/></circle>`,
+              );
+            }
+          });
+        }
+        if (svgEl.setCurrentTime) svgEl.setCurrentTime(0);
+        syncFlow();
+
+        if (!animate || calm) {
+          if (calm) lmPlayed = true;
+          syncFlow();
+          return;
+        }
+        const start = () => {
+          lmPlayed = true;
+          svgEl.querySelectorAll('.lm-e').forEach((p, i) => {
+            const len = p.getTotalLength();
+            if (p.getAttribute('stroke-dasharray'))
+              p.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, delay: 100 * i, fill: 'backwards' });
+            else {
+              p.style.strokeDasharray = `${len}`;
+              p.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], {
+                duration: 700,
+                delay: 100 * i,
+                easing: 'cubic-bezier(.22,1,.36,1)',
+                fill: 'backwards',
+              }).onfinish = () => (p.style.strokeDasharray = '');
+            }
+          });
+          svgEl.querySelectorAll('.lm-x').forEach((x, i) => {
+            const at = `translate(${x.dataset.x}px, ${x.dataset.y}px)`;
+            x.animate(
+              [
+                { transform: `${at} scale(0)` },
+                { transform: `${at} scale(1.25)`, offset: 0.7 },
+                { transform: `${at} scale(1)` },
+              ],
+              { duration: 400, delay: 1300 + i * 150, fill: 'backwards' },
+            );
+          });
+          // Start the flow from its beginning, so the dots arrive after the lines.
+          if (svgEl.setCurrentTime) svgEl.setCurrentTime(0);
+          syncFlow();
+        };
+        const io = new IntersectionObserver(
+          (es) => {
+            if (es.some((e) => e.isIntersecting)) {
+              io.disconnect();
+              start();
+            }
+          },
+          { threshold: 0.3 },
+        );
+        io.observe(canvas);
+      }
+
+      function render() {
+        const v = view,
+          s = v.site,
+          r = v.report;
+        $('site-name').textContent = s.name;
+        document.title = `x-find · ${s.name}`;
+        $('side-foot').textContent = v.background
+          ? `Runs in the background. Checks daily after ${String(s.runHour).padStart(2, '0')}:00 on this computer.`
+          : `Runs in a terminal: daily checks stop when it closes. To keep them running: x-find service install`;
+        const btn = $('run-btn');
+        btn.disabled = v.running;
+        btn.innerHTML = v.running ? '<span class="spinner" aria-hidden="true"></span> Checking…' : 'Check now';
+        $('first-run').hidden = !!r || !v.running;
+        $('content').hidden = !r;
+        const last = v.runs[0];
+        if (!r) {
+          $('site-meta').textContent =
+            last?.status === 'failed' ? `Last check failed: ${last.error}` : 'No completed check yet.';
+          $('report-link').hidden = true;
+          if (!v.running && last?.status === 'failed') showError(`The check failed: ${last.error}`);
+          return;
+        }
+        $('site-meta').textContent =
+          `${s.origin.replace(/^https?:\/\//, '')}, checked ${when(v.latest.startedAt)} (${ago(v.latest.startedAt)}). ${r.pagesChecked} pages, ${r.checkCounts.total} checks.`;
+        $('report-link').hidden = false;
+        $('report-link').href = `/runs/${v.latest.id}/report.html`;
+        if (last?.status === 'failed' && !v.running)
+          showError(
+            `The latest check failed (${when(last.startedAt)}): ${last.error}. Showing the last successful one.`,
+          );
+
+        // Opening sentence: what matters, from the data.
+        const errs = v.tasks.filter((t) => t.severity === 'error').reduce((n, t) => n + t.items.length, 0);
+        const warns = v.tasks.filter((t) => t.severity === 'warning').reduce((n, t) => n + t.items.length, 0);
+        const worst = [...r.scores].filter((x) => x.score !== null).sort((a, b) => a.score - b.score)[0];
+        let lead;
+        if (errs) lead = `${errs} problem${errs > 1 ? 's' : ''} can stop pages from being found or understood.`;
+        else if (warns)
+          lead = `Nothing is blocking the site. ${v.tasks.length} thing${v.tasks.length > 1 ? 's' : ''} would make it easier to find and cite.`;
+        else lead = 'Nothing to fix: every scored check passes.';
+        const tail =
+          worst && worst.score < 90 ? ` <em>${LABEL[worst.category]} is the weakest area at ${worst.score}.</em>` : '';
+        const gix = v.search?.hasData ? v.search.indexing : null;
+        if (gix?.inspected)
+          lead = `${
+            gix.missing
+              ? `Google has indexed ${gix.indexed} of the ${gix.inspected} pages you want in search.`
+              : `All ${gix.indexed} pages you want in search are in Google.`
+          } On the pages themselves: ${lead.charAt(0).toLowerCase()}${lead.slice(1)}`;
+        $('answer').innerHTML = esc(lead) + tail;
+        renderInGoogle(gix);
+        renderWeek(v.week, s.origin);
+
+        const titles = Object.fromEntries([...v.tasks, ...v.notices].map((t) => [t.checkId, t.title]));
+        $('scores').innerHTML = r.scores
+          .map((sc) => {
+            const d = v.changes?.scoreDelta?.[sc.category];
+            const losses = sc.topLosses
+              .slice(0, 2)
+              .map((l) => titles[l.id] || l.id)
+              .join('; ');
+            return `<div class="card score"><h3>${LABEL[sc.category]}</h3>
+      <div class="row"><span class="big num">${sc.score ?? '–'}</span><span class="what">${WHAT[sc.category]}</span></div>
+      <div class="bar"><i style="width:${sc.score ?? 0}%"></i></div>
+      ${d ? `<div class="delta num">${d > 0 ? '+' : ''}${d} since the previous check</div>` : ''}
+      ${sc.cap ? `<div class="loss bad">Capped at ${sc.cap.value}: ${esc(sc.cap.reason)}</div>` : ''}
+      <div class="loss">${losses ? `Costing points: ${esc(losses)}.` : 'Nothing is costing points.'}</div></div>`;
+          })
+          .join('');
+
+        const h = v.history;
+        $('history-note').textContent = h.length < 2 ? 'The chart fills in as daily checks run.' : `${h.length} checks`;
+        drawHistory();
+        renderLinks(v.links, s.origin);
+        renderGeo(v.geo, s.origin);
+
+        $('nav-todo').textContent = v.tasks.length || '';
+        const taskHtml = v.tasks.map((t) => taskItem(t, s.origin, t.severity === 'error')).join('');
+        const noticeCount = v.notices.reduce((n, t) => n + t.items.length, 0);
+        $('tasks').innerHTML =
+          (taskHtml || '<p style="margin:4px">Nothing to fix.</p>') +
+          (noticeCount
+            ? `<div class="foot-row">${noticeCount} notices are hidden: worth knowing, not scored. <button class="linkish" id="toggle-notices" type="button">Show them</button></div><div id="notices" hidden>${v.notices.map((t) => taskItem(t, s.origin, false)).join('')}</div>`
+            : '');
+        $('toggle-notices')?.addEventListener('click', (e) => {
+          const n = $('notices');
+          n.hidden = !n.hidden;
+          e.target.textContent = n.hidden ? 'Show them' : 'Hide them';
+        });
+
+        if (!v.changes) {
+          $('changes-since').textContent = '';
+          $('changes-body').innerHTML =
+            `<div class="empty" style="grid-column:1/-1">Changes show from the second check onwards.</div>`;
+        } else {
+          $('changes-since').textContent = `Previous check ${when(v.changes.since)}`;
+          const rank = { error: 0, warning: 1, notice: 2 };
+          const list = (all, kind) => {
+            const items = [...all].sort((a, b) => rank[a.severity] - rank[b.severity]).slice(0, 8);
+            const rest = all.length - items.length;
+            return items.length
+              ? items
+                  .map(
+                    (c) =>
+                      `<div class="change"><span class="sev ${c.severity}"></span><div><div>${kind === 'fixed' ? '<s>' : ''}${esc(c.title)}${kind === 'fixed' ? '</s>' : ''}</div><div class="u">${esc(path(c.url, s.origin))} · ${esc(c.message)}</div></div></div>`,
+                  )
+                  .join('') +
+                  (rest ? `<p class="muted" style="margin:8px 0 0">and ${rest} more in the full report</p>` : '')
+              : `<p class="muted" style="margin:0">${kind === 'fixed' ? 'Nothing fixed.' : 'Nothing new.'}</p>`;
+          };
+          $('changes-body').innerHTML =
+            `<div class="card"><h3>New (${v.changes.added.length})</h3>${list(v.changes.added, 'new')}</div><div class="card"><h3>Fixed (${v.changes.fixed.length})</h3>${list(v.changes.fixed, 'fixed')}</div>`;
+        }
+
+        $('crawlers').innerHTML = v.crawlers
+          .map((c) => {
+            const robots =
+              c.robots === 'blocked'
+                ? '<span class="bad">Blocked</span>'
+                : c.robots === 'allowed'
+                  ? c.purpose === 'training'
+                    ? 'Allowed'
+                    : '<span class="ok">Allowed</span>'
+                  : '–';
+            const blockedStatus = c.challenge || [401, 403, 429].includes(c.status);
+            const server = !c.tested
+              ? '<span class="muted">not tested</span>'
+              : blockedStatus
+                ? `<span class="bad">${c.challenge ? 'Challenge page' : c.status}</span>`
+                : c.status
+                  ? c.purpose === 'training'
+                    ? c.status
+                    : `<span class="ok">${c.status}</span>`
+                  : '<span class="muted">no answer</span>';
+            const purpose = { search: '', user: ' (on request)', training: ' (training: your choice)' }[c.purpose];
+            return `<tr><td>${esc(c.token)}<div class="muted" style="font-size:12px">${esc(c.operator)}</div></td><td class="hide-sm">${esc(c.affects)}${purpose}</td><td>${robots}</td><td>${server}</td></tr>`;
+          })
+          .join('');
+
+        $('runs').innerHTML = v.runs
+          .map(
+            (run) =>
+              `<tr><td>${when(run.startedAt)}</td><td class="hide-sm">${{ schedule: 'Daily', manual: 'Check now', cli: 'Command line' }[run.trigger] || run.trigger}</td>${
+                run.status === 'ok'
+                  ? `<td>${run.seo ?? '–'}</td><td>${run.aeo ?? '–'}</td><td>${run.geo ?? '–'}</td><td class="hide-sm">${run.errors}</td><td class="hide-sm">${run.warnings}</td><td class="r"><a href="/runs/${run.id}/report.html" target="_blank" rel="noopener">Report</a></td>`
+                  : run.status === 'running'
+                    ? '<td colspan="6" class="muted">Running…</td>'
+                    : `<td colspan="6" class="bad">Failed: ${esc(run.error)}</td>`
+              }</tr>`,
+          )
+          .join('');
+
+        renderSearch(v.search, s.origin);
+        const g = v.search;
+        const gscState = !g.connected
+          ? '<span class="tag">Not connected</span>'
+          : g.lastSync?.status === 'failed'
+            ? '<span class="tag bad">Sync failed</span>'
+            : '<span class="tag on">Connected</span>';
+        $('connections-body').innerHTML = `
+    <div class="conn"><div><b>x-find checks</b><div class="what">Daily after ${String(s.runHour).padStart(2, '0')}:00 while this computer is on; a missed day runs at the next start.</div></div><span class="tag on">Connected</span></div>
+    <div class="conn" style="align-items:flex-start"><div style="min-width:0"><b>Google Search Console</b>
+      <div class="what">${g.connected ? `Signed in as ${esc(g.email)}.${g.property ? ` Property ${esc(g.property)}.` : ''}${g.lastSync ? ` Last sync ${when(g.lastSync.at)}.` : ''}` : 'Rankings, countries, devices and indexing.'}</div>
+      ${g.lastSync?.status === 'failed' ? `<div class="what bad" style="font-weight:400">${esc(g.lastSync.error)}</div>` : ''}
+      ${g.connected ? '' : `<details class="setup" style="margin-top:8px"><summary style="cursor:pointer">How to connect (about 10 minutes)</summary>${setupSteps(s.origin)}</details>`}
+    </div>${gscState}</div>
+    <div class="conn"><div><b>Bing Webmaster Tools</b><div class="what">Bing and Copilot searches. Needs an API key.</div></div><span class="tag">Later</span></div>
+    <div class="conn"><div><b>Site analytics</b><div class="what">Cities and conversions from your own analytics.</div></div><span class="tag">Later</span></div>`;
+      }
+
+      function setupSteps(origin) {
+        return `<ol>
+          <li>Open <a href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noopener">Google Cloud → New project</a> and create a project, e.g. “x-find”.</li>
+          <li>In that project, <a href="https://console.cloud.google.com/apis/library/searchconsole.googleapis.com" target="_blank" rel="noopener">enable the Google Search Console API</a>.</li>
+          <li>Go to <a href="https://console.cloud.google.com/iam-admin/serviceaccounts" target="_blank" rel="noopener">IAM &amp; Admin → Service accounts</a> → Create service account. A name is enough; skip the roles.</li>
+          <li>Open the new service account → Keys → Add key → Create new key → JSON. A file downloads. Keep it private: it is a password.</li>
+          <li>In <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Search Console</a>, open the property for ${esc(origin.replace(/^https?:\/\//, ''))} → Settings → Users and permissions → Add user. Paste the service account's email (ends in <code>.iam.gserviceaccount.com</code>), permission <b>Restricted</b>.</li>
+          <li>In Terminal: <code>x-find gsc connect --key ~/Downloads/the-file.json</code>, then <code>x-find gsc sync</code>. After that it syncs after every daily check.</li>
+        </ol>
+        <p class="muted" style="margin:6px 0 0;font-size:12.5px">If step 4 is blocked, your Google organisation disallows service-account keys (policy iam.disableServiceAccountKeyCreation); an admin can allow it for this project.</p>`;
+      }
+
+      const fmtN = (n) => Math.round(n).toLocaleString();
+      const pct = (x) => `${(x * 100).toFixed(x < 0.1 ? 1 : 0)}%`;
+      function change(cur, prev, lowerIsBetter = false) {
+        if (!prev) return '<span class="muted">no earlier data</span>';
+        const d = lowerIsBetter ? prev - cur : cur - prev;
+        const rel = lowerIsBetter ? `${Math.abs(d).toFixed(1)} places` : `${Math.round((Math.abs(d) / prev) * 100)}%`;
+        if (Math.abs(d) < (lowerIsBetter ? 0.05 : 0.005 * prev)) return '<span class="muted">no change</span>';
+        return `<span class="${d > 0 ? 'up' : 'down'}">${d > 0 ? '↑' : '↓'} ${rel}</span> <span class="muted">vs previous 28 days</span>`;
+      }
+
+      const srcLink = (url) => `<a class="src" href="${esc(url)}" target="_blank" rel="noopener">Source ↗</a>`;
+      const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+      function notMeantLine(ix) {
+        const nm = ix.notMeant;
+        if (!nm.count) return '';
+        const parts = [
+          nm.canonical &&
+            (nm.canonical === 1
+              ? '1 URL points its canonical to another page'
+              : `${nm.canonical} URLs point their canonical to other pages`),
+          nm.noindex && plural(nm.noindex, 'page is', 'pages are') + ' noindex',
+          nm.robots && plural(nm.robots, 'page is', 'pages are') + ' blocked in robots.txt',
+          nm.status && plural(nm.status, 'URL returns', 'URLs return') + ' an error or redirect',
+        ].filter(Boolean);
+        return `Not counted, because they are kept out of search on purpose: ${parts.join(', ')}.`;
+      }
+
+      const WHO = { you: 'You', developer: 'Developer', writer: 'Writer' };
+      const GEO_STATUS = {
+        good: ['good', 'Looks good'],
+        partial: ['warning', 'Partly there'],
+        missing: ['warning', 'Missing'],
+        'not-measured': ['none', 'Not measured'],
+      };
+      const BASIS = { required: 'Required', recommended: 'Recommended', info: 'For your information' };
+
+      function renderGeo(g, origin) {
+        const stepsEl = $('geo-steps');
+        const itemsEl = $('geo-items');
+        if (!g?.measured) {
+          stepsEl.hidden = true;
+          itemsEl.innerHTML =
+            '<div class="empty"><b>Run a check to see this.</b><span>The latest check was made before x-find read this. The next check fills it in.</span></div>';
+          return;
+        }
+        stepsEl.hidden = false;
+        stepsEl.innerHTML = g.steps.length
+          ? `<div class="head"><h3>What to do next</h3><span class="sub">In order. Each step comes from the linked document.</span></div>
+            <ol class="actions">${g.steps
+              .map(
+                (st) => `<li><div class="title">${esc(st.title)} <span class="tag">${BASIS[st.basis]}</span></div>
+                <p class="why">${esc(st.step)}</p>
+                <div class="meta">${st.sources.map((u) => srcLink(u)).join(' ')}</div></li>`,
+              )
+              .join('')}</ol>`
+          : '<div class="head"><h3>What to do next</h3></div><p class="ok" style="margin:12px 0 0">Nothing: your pages state who you are clearly.</p>';
+        itemsEl.innerHTML = g.items
+          .map((it) => {
+            const [dot, word] = GEO_STATUS[it.status] || ['none', it.status];
+            return `<details class="task"><summary><span class="sev ${dot}" role="img" aria-label="${word}"></span>
+              <span><span class="t">${esc(it.title)}</span><br><span class="d">${word} · ${esc(it.summary)}</span></span>
+              ${it.status === 'good' ? '' : `<span class="tag">${BASIS[it.basis]}</span>`}</summary>
+              <div class="body">${it.step ? `<p class="fix">${esc(it.step)}</p>` : ''}${
+                it.details.length ? `<ul>${it.details.map((d) => `<li>${esc(d)}</li>`).join('')}</ul>` : ''
+              }<div class="src">Source: ${it.sources
+                .map(
+                  (u) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u.replace(/^https?:\/\//, ''))}</a>`,
+                )
+                .join(' · ')}</div></div></details>`;
+          })
+          .join('');
+      }
+
+      function renderWeek(w, origin) {
+        const el = $('week');
+        el.hidden = !w;
+        if (!w) return;
+        const stage = w.stage
+          ? `<p class="stage"><b>Stage ${w.stage.level} of 4: ${esc(w.stage.name)}.</b> ${esc(w.stage.job)} <span class="sub">${esc(w.stage.facts.join('. '))}.</span></p>`
+          : '<p class="stage sub">Connect Search Console (Connections, below) to see where the site stands and get actions from your search numbers.</p>';
+        const item = (a) => `<li>
+          <div class="title">${esc(a.title)} <span class="tag">${WHO[a.who] || esc(a.who)}</span></div>
+          ${a.note ? `<div class="note">${esc(a.note)}</div>` : ''}
+          <p class="why">${esc(a.why)}</p>
+          <ol class="steps">${a.steps.map((st) => `<li>${esc(st)}</li>`).join('')}</ol>
+          ${
+            a.pages.length
+              ? `<ul class="pages">${a.pages
+                  .slice(0, 8)
+                  .map(
+                    (p) =>
+                      `<li><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(path(p.url, origin))}</a>${p.inspectUrl ? ` · <a href="${esc(p.inspectUrl)}" target="_blank" rel="noopener">Open in Search Console ↗</a>` : ''}</li>`,
+                  )
+                  .join('')}${a.pages.length > 8 ? `<li class="sub">and ${a.pages.length - 8} more</li>` : ''}</ul>`
+              : ''
+          }
+          <div class="meta"><span>Done when: ${esc(a.doneWhen)}</span>${a.sources.map((u) => srcLink(u)).join(' ')}
+            <button class="btn" type="button" data-act="done" data-key="${esc(a.key)}">Mark done</button>
+            <button class="btn linkish" type="button" data-act="dismissed" data-key="${esc(a.key)}">Not relevant</button></div>
+        </li>`;
+        const list = w.thisWeek.length
+          ? `<ol class="actions">${w.thisWeek.map(item).join('')}</ol>`
+          : '<p class="ok" style="margin:12px 0 0">Nothing to do this week: every check passes.</p>';
+        const backlog = w.backlog.length
+          ? `<details><summary>${plural(w.backlog.length, 'more action is', 'more actions are')} waiting</summary><ul class="small-list">${w.backlog.map((a) => `<li>${esc(a.title)}</li>`).join('')}</ul></details>`
+          : '';
+        const done = w.done.length
+          ? `<details open><summary>Done in the last two weeks (${w.done.length})</summary><ul class="small-list">${w.done
+              .map(
+                (a) =>
+                  `<li>✓ ${esc(a.title)} <span class="sub">${a.doneBy === 'x-find' ? 'x-find saw it fixed' : 'you marked it done'} ${when(a.doneAt)}</span></li>`,
+              )
+              .join('')}</ul></details>`
+          : '';
+        el.innerHTML = `<div class="head"><h3>This week</h3><span class="sub">At most three things, most important first. They update after every check.</span></div>${stage}${list}${backlog}${done}`;
+        el.querySelectorAll('button[data-act]').forEach((b) =>
+          b.addEventListener('click', () => markAction(b.dataset.key, b.dataset.act)),
+        );
+      }
+      async function markAction(key, status) {
+        try {
+          await api(`/api/sites/${current}/actions`, { method: 'POST', body: JSON.stringify({ key, status }) });
+          await loadSite();
+        } catch (e) {
+          showError(e.message);
+        }
+      }
+
+      function renderInGoogle(ix) {
+        const el = $('in-google');
+        el.hidden = !ix?.inspected;
+        $('scores-note').textContent = ix?.inspected
+          ? 'Readiness scores measure the pages themselves. They are not rankings, and a high score does not mean Google has indexed the page.'
+          : 'Readiness scores measure the pages themselves, not rankings or indexing. Connect Search Console to see how many pages Google has.';
+        if (!ix?.inspected) return;
+        const share = Math.round((100 * ix.indexed) / ix.inspected);
+        el.innerHTML = `<div class="head"><div><h3>In Google</h3>
+          <div class="score"><div class="row"><span class="big num">${ix.indexed}<small> / ${ix.inspected}</small></span><span class="what">pages you want in search are indexed (${share}%)</span></div></div></div>
+          ${ix.missing ? '<a href="#indexing">Why the rest are not →</a>' : ''}</div>
+          <div class="bar"><i style="width:${share}%;background:var(--good)"></i></div>
+          <p class="verdict">${esc(ix.verdict)}</p>
+          ${ix.site.length ? `<ul class="reasons">${ix.site.map((r) => `<li>${esc(r.text)} ${srcLink(r.source)}</li>`).join('')}</ul>` : ''}
+          ${ix.meant > ix.inspected ? `<p class="sub" style="margin:8px 0 0">${plural(ix.meant - ix.inspected, 'more page is', 'more pages are')} waiting for URL Inspection (up to 100 a day).</p>` : ''}
+          ${ix.notMeant.count ? `<p class="sub" style="margin:8px 0 0">${esc(notMeantLine(ix))}</p>` : ''}`;
+      }
+
+      function renderSearch(g, origin) {
+        const body = $('search-body');
+        const syncing = g.syncing ? ' Syncing now…' : '';
+        if (!g.connected) {
+          $('search-sub').textContent = 'Not connected.';
+          body.innerHTML = `<div class="empty setup"><b>Connect Search Console to see rankings, countries and indexing.</b><span>Nothing is shown until then: no estimates.</span>${setupSteps(origin)}</div>`;
+          return;
+        }
+        if (!g.hasData) {
+          $('search-sub').textContent = `Connected as ${g.email}${syncing}`;
+          body.innerHTML = `<div class="empty"><b>${g.lastSync?.status === 'failed' ? 'The last sync failed.' : 'No data yet.'}</b><span>${esc(g.lastSync?.error || 'Data arrives after the first sync.')}</span><button class="btn" type="button" id="sync-btn"${g.syncing ? ' disabled' : ''}>${g.syncing ? 'Syncing…' : 'Sync now'}</button></div>`;
+          $('sync-btn')?.addEventListener('click', syncNow);
+          return;
+        }
+        const t = g.totals;
+        const [cs, ce] = g.range.cur;
+        $('search-sub').textContent = `${cs} to ${ce} for ${g.property}. Google's data lags 2-3 days.${syncing}`;
+        const kpi = (label, value, ch) =>
+          `<div class="card kpi"><h3>${label}</h3><div class="value num">${value}</div><div class="delta num">${ch}</div></div>`;
+        const days = g.daily;
+        const queries = g.queries
+          .map((q) => {
+            const d = q.prevPosition === null ? null : q.prevPosition - q.position;
+            const chg =
+              d === null
+                ? '<span class="muted">new</span>'
+                : Math.abs(d) < 0.05
+                  ? '–'
+                  : `<span class="${d > 0 ? 'up' : 'down'}">${d > 0 ? '↑' : '↓'} ${Math.abs(d).toFixed(1)}</span>`;
+            return `<tr><td><div class="q">${esc(q.query)}</div><div class="pg">${esc(path(q.page, origin))}</div></td><td class="r num">${q.position.toFixed(1)}</td><td class="r num hide-sm">${chg}</td><td class="r num">${fmtN(q.impressions)}</td><td class="r num">${fmtN(q.clicks)}</td><td class="r num hide-sm">${pct(q.ctr)}</td></tr>`;
+          })
+          .join('');
+        const maxC = Math.max(1, ...g.countries.map((c) => c.impressions));
+        const countries =
+          g.countries
+            .map(
+              (c) =>
+                `<div class="row" title="${esc(c.name)}: ${fmtN(c.impressions)} impressions, ${fmtN(c.clicks)} clicks"><span class="lab">${esc(c.name)}</span><span><span class="fill" style="width:${(c.impressions / maxC) * 100}%"></span></span><span class="val num">${fmtN(c.impressions)}</span></div>`,
+            )
+            .join('') +
+          (g.otherCountries.count
+            ? `<div class="row"><span class="lab">Other (${g.otherCountries.count})</span><span><span class="fill" style="width:${Math.min(100, (g.otherCountries.impressions / maxC) * 100)}%;background:var(--ink-3)"></span></span><span class="val num">${fmtN(g.otherCountries.impressions)}</span></div>`
+            : '');
+        const devTotal = g.devices.reduce((n, d) => n + d.impressions, 0) || 1;
+        const devColor = { mobile: 'var(--series-1)', desktop: 'var(--series-2)', tablet: 'var(--series-3)' };
+        const devices = g.devices.length
+          ? `<div class="stack" role="img" aria-label="${g.devices.map((d) => `${d.device} ${Math.round((d.impressions / devTotal) * 100)}%`).join(', ')}">${g.devices.map((d) => `<span style="flex:${d.impressions};background:${devColor[d.device] || 'var(--ink-3)'}" title="${esc(d.device)}: ${fmtN(d.impressions)} impressions"></span>`).join('')}</div><div class="keys num">${g.devices.map((d) => `<span><i style="background:${devColor[d.device] || 'var(--ink-3)'}"></i>${esc(d.device[0].toUpperCase() + d.device.slice(1))} ${Math.round((d.impressions / devTotal) * 100)}%</span>`).join('')}</div>`
+          : '<p class="muted">No device data.</p>';
+
+        const ix = g.indexing;
+        const stateColor = (st) =>
+          /indexed/i.test(st) && !/not indexed/i.test(st)
+            ? 'var(--good)'
+            : /discovered/i.test(st)
+              ? 'var(--warning)'
+              : /crawled/i.test(st)
+                ? 'var(--serious)'
+                : 'var(--ink-3)';
+        const inspectA = (p, text) =>
+          p.inspectUrl ? `<a href="${esc(p.inspectUrl)}" target="_blank" rel="noopener">${text}</a>` : text;
+        const groupHtml = (gr) => {
+          const withWhy = gr.pages.filter((p) => p.reasons.length);
+          const without = gr.pages.filter((p) => !p.reasons.length);
+          const table = withWhy.length
+            ? `<div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Page</th><th>What x-find sees on the site</th><th class="hide-sm">Last crawled</th><th></th></tr></thead><tbody>${withWhy
+                .slice(0, 30)
+                .map(
+                  (p) =>
+                    `<tr><td style="overflow-wrap:anywhere;min-width:9em">${esc(path(p.url, origin))}</td><td><div class="why">${p.reasons.map((r) => `<a class="tag" href="${esc(r.source)}" target="_blank" rel="noopener" title="Source">${esc(r.text)}</a>`).join('')}</div></td><td class="hide-sm num">${p.lastCrawl ? when(p.lastCrawl) : 'never'}</td><td class="r" style="white-space:nowrap">${inspectA(p, 'Inspect ↗')}</td></tr>`,
+                )
+                .join(
+                  '',
+                )}</tbody></table></div>${withWhy.length > 30 ? `<p class="sub">and ${withWhy.length - 30} more</p>` : ''}`
+            : '';
+          const rest = without.length
+            ? `<p class="pg" style="margin-top:10px">${withWhy.length ? 'Nothing on the page explains the others' : 'Nothing on the page explains these'} (each opens in Search Console): ${without
+                .map((p) => inspectA(p, esc(path(p.url, origin))))
+                .join(', ')}</p>`
+            : '';
+          return `<div class="ix-group"><div class="state"><b>${esc(gr.state)}</b><span class="sub num">${plural(gr.pages.length, 'page', 'pages')}</span></div>
+          <p class="pg">${esc(gr.meaning)} ${srcLink(gr.source)}</p>
+          <p>${esc(gr.todo)}</p>${table}${rest}</div>`;
+        };
+        const indexing = ix.inspected
+          ? `<div class="stack" role="img" aria-label="${ix.states.map((x) => `${x.state}: ${x.count}`).join(', ')}">${ix.states.map((x) => `<span style="flex:${x.count};background:${stateColor(x.state)}" title="${esc(x.state)}: ${x.count}"></span>`).join('')}</div>
+             <div class="keys num">${ix.states.map((x) => `<span><i style="background:${stateColor(x.state)}"></i>${esc(x.state)} ${x.count}</span>`).join('')}</div>
+             <p class="verdict" style="margin:14px 0 0">${esc(ix.verdict)}</p>
+             ${ix.site.length ? `<ul class="reasons">${ix.site.map((r) => `<li>${esc(r.text)} ${srcLink(r.source)}</li>`).join('')}</ul>` : ''}
+             ${
+               ix.missing
+                 ? `${ix.groups.map(groupHtml).join('')}<p class="sub" style="margin:12px 0 0">“Request indexing” is a button on the Search Console page: Google offers no way to automate it for normal sites.</p>`
+                 : '<p class="ok" style="margin:6px 0 0">Every inspected page you want in search is indexed.</p>'
+             }
+             ${ix.notMeant.count ? `<p class="sub" style="margin:12px 0 0">${esc(notMeantLine(ix))}</p>` : ''}`
+          : '<p class="muted">Pages are inspected after each check, up to 100 a day.</p>';
+
+        const opp = g.opportunities;
+        const oppCard = (title, rule, items) =>
+          `<div class="card opp"><h3>${title}</h3><div class="rule">${rule}</div>${items.length ? `<ul>${items.join('')}</ul>` : '<p class="muted" style="margin:8px 0 0">Nothing matches right now.</p>'}</div>`;
+        const opps = `<div class="grid g3">
+          ${oppCard(
+            'Close to page one',
+            'Searches at positions 8-20 with 50+ impressions. Small improvements to the page move these most.',
+            opp.closeToPageOne.map(
+              (o) =>
+                `<li><b>${esc(o.query)}</b> · position ${o.position.toFixed(1)}, ${fmtN(o.impressions)} impressions<div class="pg">${esc(path(o.page, origin))}</div></li>`,
+            ),
+          )}
+          ${oppCard(
+            'Seen but rarely clicked',
+            `Top-10 searches with 100+ impressions and a click rate under half of this site's top-10 average (${pct(opp.top10Ctr)}). Rewrite the title and description.`,
+            opp.lowCtr.map(
+              (o) =>
+                `<li><b>${esc(o.query)}</b> · ${pct(o.ctr)} click rate at position ${o.position.toFixed(1)}<div class="pg">${esc(path(o.page, origin))}</div></li>`,
+            ),
+          )}
+          ${oppCard(
+            'Losing clicks',
+            'Pages with 10+ clicks in the previous 28 days that lost 30% or more.',
+            opp.losing.map(
+              (o) => `<li><b>${esc(path(o.page, origin))}</b> · ${fmtN(o.prevClicks)} → ${fmtN(o.clicks)} clicks</li>`,
+            ),
+          )}
+        </div>`;
+
+        body.innerHTML = `
+          <div class="grid g4">
+            ${kpi('Clicks', fmtN(t.cur.clicks), change(t.cur.clicks, t.prev.clicks))}
+            ${kpi('Impressions', fmtN(t.cur.impressions), change(t.cur.impressions, t.prev.impressions))}
+            ${kpi('Average position', t.cur.impressions ? t.cur.position.toFixed(1) : '–', t.prev.impressions ? change(t.cur.position, t.prev.position, true) : '<span class="muted">no earlier data</span>')}
+            ${kpi('Click rate', pct(t.cur.ctr), t.prev.impressions ? `<span class="muted">${pct(t.prev.ctr)} before</span>` : '<span class="muted">no earlier data</span>')}
+          </div>
+          <div class="grid g2" style="margin-top:12px">
+            <div class="card"><h3>Clicks per day</h3><div class="chart" id="gsc-clicks"></div></div>
+            <div class="card"><h3>Impressions per day</h3><div class="chart" id="gsc-impr"></div></div>
+          </div>
+          <div class="card" style="margin-top:12px;padding:6px 6px 2px"><div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px 4px;gap:8px;flex-wrap:wrap"><h3>Top searches</h3><button class="btn" type="button" id="sync-btn"${g.syncing ? ' disabled' : ''}>${g.syncing ? 'Syncing…' : 'Sync now'}</button></div>
+            ${queries ? `<div class="tablewrap"><table><thead><tr><th>Search</th><th class="r">Position</th><th class="r hide-sm">Change</th><th class="r">Impressions</th><th class="r">Clicks</th><th class="r hide-sm">Click rate</th></tr></thead><tbody>${queries}</tbody></table></div>` : '<p class="muted" style="padding:0 10px 10px">No searches with impressions yet. A new site can take weeks to appear.</p>'}
+          </div>
+          <h3 style="margin:24px 0 10px;font-size:14px;color:var(--ink)">Opportunities</h3>
+          ${opps}
+          <div class="grid g2" style="margin-top:12px">
+            <div class="card"><h3>Countries, by search impressions</h3><div class="hbars" style="margin-top:10px">${countries || '<p class="muted">No country data yet.</p>'}</div></div>
+            <div class="card"><h3>Devices</h3>${devices}<h3 style="margin-top:18px">Cities</h3><p class="muted" style="margin:4px 0 0">Google reports countries only. Cities will come from your site's own analytics.</p></div>
+          </div>
+          <div class="card" id="indexing" style="margin-top:12px;scroll-margin-top:16px"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><h3>Indexing</h3><span class="sub num">${ix.indexed} of ${ix.inspected} inspected pages you want in search are in Google</span></div>${indexing}</div>`;
+        $('sync-btn')?.addEventListener('click', syncNow);
+        if (days.length) {
+          lineChart(
+            $('gsc-clicks'),
+            days.map((d) => d.date),
+            days.map((d) => d.clicks),
+            'Clicks',
+          );
+          lineChart(
+            $('gsc-impr'),
+            days.map((d) => d.date),
+            days.map((d) => d.impressions),
+            'Impressions',
+          );
+        }
+      }
+
+      async function syncNow() {
+        try {
+          await api(`/api/sites/${current}/search-sync`, { method: 'POST' });
+          await loadSite();
+        } catch (e) {
+          showError(e.message);
+        }
+      }
+
+      /** One series, one axis: crosshair and tooltip on hover. */
+      function lineChart(el, dates, values, name) {
+        const W = el.clientWidth || 500,
+          H = 170,
+          L = 40,
+          R = 12,
+          T = 8,
+          B = 22;
+        const n = values.length;
+        const max = Math.max(1, ...values);
+        const nice = Math.pow(10, Math.floor(Math.log10(max)));
+        const yMax = Math.ceil(max / nice) * nice;
+        const x = (i) => (n === 1 ? (L + W - R) / 2 : L + (i / (n - 1)) * (W - L - R));
+        const y = (v) => T + (1 - v / yMax) * (H - T - B);
+        const fmt = (d) =>
+          new Date(`${d}T00:00:00Z`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' });
+        let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${name} per day">`;
+        for (let k = 0; k <= 4; k++) {
+          const v = (yMax / 4) * k;
+          svg += `<line class="gridline" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><g class="axis"><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${fmtN(v)}</text></g>`;
+        }
+        const step = Math.ceil(n / Math.max(2, Math.floor((W - L - R) / 80)));
+        dates.forEach((d, i) => {
+          if (i === n - 1 || (i % step === 0 && n - 1 - i >= step * 0.75))
+            svg += `<g class="axis"><text x="${x(i)}" y="${H - 5}" text-anchor="${i === n - 1 ? 'end' : i === 0 ? 'start' : 'middle'}">${fmt(d)}</text></g>`;
+        });
+        svg += `<polyline points="${values.map((v, i) => `${x(i)},${y(v)}`).join(' ')}" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+        svg += `<line class="cross" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--line-2)" opacity="0"/><circle class="dotm" r="4" fill="var(--series-1)" stroke="var(--surface)" stroke-width="2" opacity="0"/><rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/></svg><div class="tip"></div>`;
+        el.innerHTML = svg;
+        const s = el.querySelector('svg'),
+          tip = el.querySelector('.tip'),
+          cross = el.querySelector('.cross'),
+          dot = el.querySelector('.dotm');
+        s.addEventListener('pointermove', (ev) => {
+          const r = s.getBoundingClientRect(),
+            px = ((ev.clientX - r.left) / r.width) * W;
+          const i = n === 1 ? 0 : Math.max(0, Math.min(n - 1, Math.round(((px - L) / (W - L - R)) * (n - 1))));
+          cross.setAttribute('x1', x(i));
+          cross.setAttribute('x2', x(i));
+          cross.setAttribute('opacity', 1);
+          dot.setAttribute('cx', x(i));
+          dot.setAttribute('cy', y(values[i]));
+          dot.setAttribute('opacity', 1);
+          tip.innerHTML = `<b>${fmt(dates[i])}</b> · ${name} ${fmtN(values[i])}`;
+          tip.style.left = `${(x(i) / W) * 100}%`;
+          tip.style.top = `${(y(values[i]) / H) * r.height}px`;
+          tip.style.opacity = 1;
+        });
+        s.addEventListener('pointerleave', () => {
+          tip.style.opacity = 0;
+          cross.setAttribute('opacity', 0);
+          dot.setAttribute('opacity', 0);
+        });
+      }
+
+      function taskItem(t, origin, open) {
+        const items = t.items
+          .slice(0, 12)
+          .map(
+            (i) =>
+              `<li>${esc(path(i.url, origin))} · ${esc(i.message)}${i.evidence ? `<div class="ev">${esc(i.evidence)}</div>` : ''}</li>`,
+          )
+          .join('');
+        const more =
+          t.items.length > 12 ? `<li class="muted">and ${t.items.length - 12} more in the full report</li>` : '';
+        const since = t.items
+          .map((i) => i.firstSeen)
+          .filter(Boolean)
+          .sort()[0];
+        return `<details class="task"${open ? ' open' : ''}><summary><span class="sev ${t.severity}" aria-label="${t.severity}"></span>
+    <span><span class="t">${esc(t.title)}</span><br><span class="d">${t.items.length} ${t.items.length === 1 ? 'place' : 'places'}${t.label ? ` · ${esc(t.label)}` : ''}${since ? ` · first seen ${when(since)}` : ''}</span></span>
+    <span class="tag">${LABEL[t.category]}</span></summary>
+    <div class="body"><p class="fix">${esc(t.fix)}</p><ul>${items}${more}</ul>
+    <div class="src">Source: ${t.sources.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u.replace(/^https?:\/\//, ''))}</a>`).join(' · ')} · check ${esc(t.checkId)}</div></div></details>`;
+      }
+
+      function drawHistory() {
+        const el = $('scores-chart');
+        const h = view.history.filter((x) => x.seo !== null || x.aeo !== null || x.geo !== null);
+        if (!h.length) {
+          el.innerHTML = '';
+          return;
+        }
+        const series = [
+          ['SEO', 'seo', 'var(--series-1)'],
+          ['AEO', 'aeo', 'var(--series-2)'],
+          ['GEO', 'geo', 'var(--series-3)'],
+        ];
+        const W = el.clientWidth || 600,
+          H = 220,
+          L = 34,
+          R = 56,
+          T = 10,
+          B = 24;
+        const n = h.length;
+        const x = (i) => (n === 1 ? (L + W - R) / 2 : L + (i / (n - 1)) * (W - L - R));
+        const all = h.flatMap((p) => series.map(([, k]) => p[k]).filter((v) => v !== null));
+        const yMin = Math.max(0, Math.floor((Math.min(...all) - 5) / 10) * 10),
+          yMax = 100;
+        const y = (v) => T + (1 - (v - yMin) / (yMax - yMin)) * (H - T - B);
+        let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Readiness scores over time">`;
+        for (let t = yMin; t <= yMax; t += (yMax - yMin) / 4)
+          s += `<line class="gridline" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><g class="axis"><text x="${L - 8}" y="${y(t) + 4}" text-anchor="end">${Math.round(t)}</text></g>`;
+        const fmt = (iso) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+        const step = Math.ceil(n / Math.max(2, Math.floor((W - L - R) / 90)));
+        h.forEach((p, i) => {
+          if (i === n - 1 || (i % step === 0 && n - 1 - i >= step * 0.75))
+            s += `<g class="axis"><text x="${x(i)}" y="${H - 6}" text-anchor="${n > 1 && i === n - 1 ? 'end' : n > 1 && i === 0 ? 'start' : 'middle'}">${fmt(p.at)}</text></g>`;
+        });
+        // End labels, nudged apart when two scores are close.
+        const ends = series
+          .map(([name, k, color]) => ({ name, k, color, v: h[n - 1][k] }))
+          .filter((e) => e.v !== null)
+          .sort((a, b) => b.v - a.v);
+        let lastY = -Infinity;
+        for (const e of ends) {
+          e.ly = Math.max(y(e.v) + 4, lastY + 13);
+          lastY = e.ly;
+        }
+        for (const e of ends) {
+          const pts = h
+            .map((p, i) => (p[e.k] === null ? null : `${x(i)},${y(p[e.k])}`))
+            .filter(Boolean)
+            .join(' ');
+          if (n > 1)
+            s += `<polyline points="${pts}" fill="none" stroke="${e.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+          s += `<circle cx="${x(n - 1)}" cy="${y(e.v)}" r="4" fill="${e.color}" stroke="var(--surface)" stroke-width="2"/>`;
+          s += `<text x="${x(n - 1) + 9}" y="${e.ly}" fill="var(--ink-2)" font-size="11.5">${e.name} ${e.v}</text>`;
+        }
+        s += `<line class="cross" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--line-2)" opacity="0"/><rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/></svg><div class="tip"></div>`;
+        el.innerHTML = s;
+        const svg = el.querySelector('svg'),
+          tip = el.querySelector('.tip'),
+          cross = el.querySelector('.cross');
+        svg.addEventListener('pointermove', (ev) => {
+          const r = svg.getBoundingClientRect(),
+            px = ((ev.clientX - r.left) / r.width) * W;
+          const i = n === 1 ? 0 : Math.max(0, Math.min(n - 1, Math.round(((px - L) / (W - L - R)) * (n - 1))));
+          const p = h[i];
+          cross.setAttribute('x1', x(i));
+          cross.setAttribute('x2', x(i));
+          cross.setAttribute('opacity', 1);
+          tip.innerHTML = `<b>${esc(when(p.at))}</b><br>SEO ${p.seo ?? '–'}, AEO ${p.aeo ?? '–'}, GEO ${p.geo ?? '–'}`;
+          tip.style.left = `${(x(i) / W) * 100}%`;
+          tip.style.top = `${(y(Math.max(p.seo ?? 0, p.aeo ?? 0, p.geo ?? 0)) / H) * r.height}px`;
+          tip.style.opacity = 1;
+        });
+        svg.addEventListener('pointerleave', () => {
+          tip.style.opacity = 0;
+          cross.setAttribute('opacity', 0);
+        });
+      }
+
+      $('run-btn').addEventListener('click', async () => {
+        try {
+          await api(`/api/sites/${current}/run`, { method: 'POST' });
+          await loadSite();
+        } catch (e) {
+          showError(e.message);
+        }
+      });
+      $('site-select').addEventListener('change', (e) => {
+        if (e.target.value === 'add') {
+          // Not a site: go to the add form and put the old choice back.
+          e.target.value = String(current);
+          $('connections').scrollIntoView({ behavior: 'smooth' });
+          $('add-form-2').querySelector('input').focus({ preventScroll: true });
+          return;
+        }
+        current = Number(e.target.value);
+        history.replaceState(null, '', `?site=${current}`);
+        rememberSite(current);
+        loadSite();
+      });
+      for (const id of ['add-form', 'add-form-2']) {
+        $(id).addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const origin = new FormData(e.target).get('origin');
+          try {
+            const { id: newId } = await api('/api/sites', { method: 'POST', body: JSON.stringify({ origin }) });
+            current = newId;
+            history.replaceState(null, '', `?site=${newId}`);
+            e.target.reset();
+            await loadSites();
+          } catch (err) {
+            showError(err.message);
+          }
+        });
+      }
+      function setTheme(t) {
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+        else delete document.documentElement.dataset.theme;
+        try {
+          if (t === 'light' || t === 'dark') localStorage.setItem('x-find-theme', t);
+          else localStorage.removeItem('x-find-theme');
+        } catch {}
+        const cur = document.documentElement.dataset.theme ?? 'auto';
+        document
+          .querySelectorAll('[data-theme-set]')
+          .forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeSet === cur)));
+      }
+      document
+        .querySelectorAll('[data-theme-set]')
+        .forEach((b) => b.addEventListener('click', () => setTheme(b.dataset.themeSet)));
+      setTheme(document.documentElement.dataset.theme ?? 'auto');
+      const links = [...document.querySelectorAll('.nav a')];
+      const obs = new IntersectionObserver(
+        (entries) => {
+          for (const en of entries)
+            if (en.isIntersecting)
+              links.forEach((a) => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id));
+        },
+        { rootMargin: '-30% 0px -60% 0px' },
+      );
+      document.querySelectorAll('main section[id]').forEach((s) => obs.observe(s));
+      let rt;
+      addEventListener('resize', () => {
+        clearTimeout(rt);
+        rt = setTimeout(() => {
+          if (view?.report) drawHistory();
+          if (view?.search?.hasData) renderSearch(view.search, view.site.origin);
+        }, 120);
+      });
+      loadSites().catch((e) => showError(`Could not reach the x-find server: ${e.message}`));
+    </script>
+  </body>
+</html>
