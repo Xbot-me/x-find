@@ -41,7 +41,10 @@
     "build": "rm -rf dist && tsc -p tsconfig.build.json && chmod +x dist/node/cli.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --exclude test/live-site.test.ts",
-    "test:live": "X_FIND_LIVE=1 vitest run test/live-site.test.ts"
+    "test:live": "X_FIND_LIVE=1 vitest run test/live-site.test.ts",
+    "readme": "node scripts/sync-readme.mjs",
+    "prepack": "node scripts/sync-readme.mjs",
+    "prepublishOnly": "pnpm build && pnpm test"
   },
   "dependencies": {
     "parse5": "^8.1.1",
@@ -59,5 +62,8 @@
   "homepage": "https://github.com/Xbot-me/x-find#readme",
   "bugs": {
     "url": "https://github.com/Xbot-me/x-find/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
